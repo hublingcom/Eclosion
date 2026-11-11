@@ -2,7 +2,7 @@
 import java.util.Random;
 import java.awt.Color;
 import nl.saxion.app.SaxionApp;
-
+fsgkfsgsgd
 
 public class CozyCafe implements Runnable {
     int flowers = 0;
