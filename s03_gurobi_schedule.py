@@ -14,7 +14,7 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-import gurobipy as gp
+import gurobipy as gp ㄹ앻ㄴㄹㄴㅇㄹㄴㅇ
 from gurobipy import GRB
 
 from config import OUT
