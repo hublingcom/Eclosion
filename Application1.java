@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 public class Application1 implements Runnable{
     public static void main(String[] args) {
-        SaxionApp.start(new Application1(), 1000, 500);
+        SaxionApp.start(new Application1(), 1000, 500);vjvj
     }
 
     // The run method can be used to test your implementation. You can also change the argument values for
