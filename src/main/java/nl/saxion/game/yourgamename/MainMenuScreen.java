@@ -1,6 +1,7 @@
 package nl.saxion.game.yourgamename;
 
 import com.badlogic.gdx.Input;
+import nl.saxion.game.eclosion.FloorTransitionScreen;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 
@@ -23,12 +24,16 @@ public class MainMenuScreen extends ScalableGameScreen {
             GameApp.switchScreen("YourGameScreen");
         }
 
-        // Test shortcuts: 1 = Floor 1 minigame, 2 = Ageha's room
+        // Test shortcuts: 1 = Floor 1 minigame, 2 = Ageha's room, 3 = stairs -> Floor 1
         if (GameApp.isKeyJustPressed(Input.Keys.NUM_1)) {
             GameApp.switchScreen("Floor1FlowerScreen");
         }
         if (GameApp.isKeyJustPressed(Input.Keys.NUM_2)) {
             GameApp.switchScreen("RoomScreen");
+        }
+        if (GameApp.isKeyJustPressed(Input.Keys.NUM_3)) {
+            FloorTransitionScreen.prepare("Day 2", "Floor 1", "Loneliness", "Floor1FlowerScreen");
+            GameApp.switchScreen("FloorTransitionScreen");
         }
 
         // Render the main menu
