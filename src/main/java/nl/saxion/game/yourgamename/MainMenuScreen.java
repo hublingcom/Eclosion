@@ -23,6 +23,14 @@ public class MainMenuScreen extends ScalableGameScreen {
             GameApp.switchScreen("YourGameScreen");
         }
 
+        // Test shortcuts: 1 = Floor 1 minigame, 2 = Ageha's room
+        if (GameApp.isKeyJustPressed(Input.Keys.NUM_1)) {
+            GameApp.switchScreen("Floor1FlowerScreen");
+        }
+        if (GameApp.isKeyJustPressed(Input.Keys.NUM_2)) {
+            GameApp.switchScreen("RoomScreen");
+        }
+
         // Render the main menu
         GameApp.clearScreen("black");
         GameApp.startSpriteRendering();
