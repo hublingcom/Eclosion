@@ -35,6 +35,9 @@ public class MainMenuScreen extends ScalableGameScreen {
             FloorTransitionScreen.prepare("Day 2", "Floor 1", "Loneliness", "Floor1FlowerScreen");
             GameApp.switchScreen("FloorTransitionScreen");
         }
+        if (GameApp.isKeyJustPressed(Input.Keys.NUM_4)) {
+            GameApp.switchScreen("OddColorScreen");
+        }
 
         // Render the main menu
         GameApp.clearScreen("black");

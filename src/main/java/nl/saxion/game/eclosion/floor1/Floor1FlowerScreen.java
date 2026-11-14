@@ -2,6 +2,7 @@ package nl.saxion.game.eclosion.floor1;
 
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import nl.saxion.game.eclosion.DayTransitionScreen;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 
@@ -39,8 +40,8 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
     static final float FALL_MAX = 240f;
     static final float FALL_BONUS_END = 120f;    // extra speed reached at the end of the night
 
-    // Screen to go to after passing. Change this to the next floor's screen name later.
-    static final String NEXT_SCREEN = "MainMenuScreen";
+    // After passing: night falls, the next day starts in Ageha's room
+    static final String NEXT_SCREEN = "DayTransitionScreen";
 
     // ---------- state ----------
     enum State { INTRO, PLAYING, RESULT }
@@ -135,6 +136,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
             if (GameApp.isKeyJustPressed(Input.Keys.ENTER)) {
                 if (passed) {
                     // TODO: save gotItem somewhere global (photo piece) before switching
+                    DayTransitionScreen.prepare(3, "RoomScreen");
                     GameApp.switchScreen(NEXT_SCREEN);
                     return;
                 } else {
@@ -242,6 +244,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         // Black-and-white world (color returns after this floor -> yellow)
         GameApp.clearScreen(12, 12, 16);
 
+        GameApp.enableTransparency();   // SpriteBatch.end() turns blending off, so turn it on again
         GameApp.startShapeRenderingFilled();
         drawBackground();
         for (Flower f : flowers) drawFlower(f);
@@ -327,6 +330,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
     }
 
     void drawOverlay(String[] lines) {
+        GameApp.enableTransparency();   // SpriteBatch.end() turns blending off, so turn it on again
         GameApp.startShapeRenderingFilled();
         GameApp.drawRect(0, 0, getWorldWidth(), getWorldHeight(), new Color(0, 0, 0, 0.7f));
         GameApp.endShapeRendering();

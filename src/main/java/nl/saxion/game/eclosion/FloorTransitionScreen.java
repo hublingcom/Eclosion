@@ -48,7 +48,7 @@ public class FloorTransitionScreen extends ScalableGameScreen {
 
     static final float AGEHA_H = 180;
     static final float AGEHA_W = AGEHA_H * 194f / 320f;
-    static final float WALK_SPEED = 3.4f;    // steps per second (slow: he doesn't want to go)
+    static final float WALK_SPEED = 3f;      // steps per second (slow: he doesn't want to go)
     static final float START_POS = -1.8f;    // a bit before the stairs
     static final float END_POS = STEPS + 1.6f; // in front of the door on the landing
 
@@ -168,12 +168,14 @@ public class FloorTransitionScreen extends ScalableGameScreen {
     void draw() {
         GameApp.clearScreen(14, 13, 15);
 
+        GameApp.enableTransparency();   // SpriteBatch.end() turns blending off, so turn it on again
         GameApp.startShapeRenderingFilled();
         drawRoom();
         drawStairs();
         GameApp.endShapeRendering();
 
         GameApp.setLineWidth(4);
+        GameApp.enableTransparency();   // SpriteBatch.end() turns blending off, so turn it on again
         GameApp.startShapeRenderingOutlined();
         drawHandrail();
         GameApp.endShapeRendering();
@@ -183,6 +185,7 @@ public class FloorTransitionScreen extends ScalableGameScreen {
         if (state != State.TITLE) drawAgeha();
         GameApp.endSpriteRendering();
 
+        GameApp.enableTransparency();   // SpriteBatch.end() turns blending off, so turn it on again
         GameApp.startShapeRenderingFilled();
         drawOverlays();
         GameApp.endShapeRendering();

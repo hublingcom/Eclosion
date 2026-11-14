@@ -2,6 +2,9 @@ package nl.saxion.game.yourgamename;
 
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Rectangle;
+import nl.saxion.game.eclosion.DoorTransitionScreen;
+import nl.saxion.game.eclosion.FloorTransitionScreen;
+import nl.saxion.game.eclosion.NightCutsceneScreen;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 
@@ -173,7 +176,12 @@ public class RoomScreen extends ScalableGameScreen {
         if (me.overlaps(grow(desk, 60))) {
             message = "A desk. Something is missing from the drawer...";
         } else if (me.overlaps(grow(door, 60))) {
-            message = "The door to the corridor. (Next: switch to the corridor screen!)";
+            // leave the room: door -> stairs -> night cutscene -> Floor 1
+            // (later: go to the corridor first, once CorridorScreen exists)
+            message = "";
+            FloorTransitionScreen.prepare("Day 2", "Floor 1", "Loneliness", "NightCutsceneScreen");
+            NightCutsceneScreen.prepare("Floor1FlowerScreen");
+            DoorTransitionScreen.go("FloorTransitionScreen");
         } else {
             message = "";
         }
