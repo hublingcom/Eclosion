@@ -13,6 +13,7 @@ public class Flower {
     float swayAmount;  // how far it swings left/right
     float radius;
     float rotation;    // petals slowly turn while falling
+    boolean wilted = false;  // withered flower: catching it costs points
     boolean caught = false;
     boolean missed = false;
 }

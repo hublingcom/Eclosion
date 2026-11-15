@@ -27,8 +27,9 @@ public class EveningRoomScreen extends ScalableGameScreen {
     // player starts just inside the door (bottom middle)
     static final float START_X = 860, START_Y = 470;
     float px, py;
-    static final float PH = 200;
-    static final float PW = PH * 194f / 320f;
+    // same on-screen size as in Chidera's room (80 x 100), converted to image pixels
+    static final float PH = 100f * IMG_H / WORLD_H;
+    static final float PW = 80f * IMG_H / WORLD_H;
     static final float SPEED = 4.5f;
 
     boolean hasTarget = false;

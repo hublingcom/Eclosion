@@ -40,6 +40,12 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
     static final float FALL_MAX = 240f;
     static final float FALL_BONUS_END = 120f;    // extra speed reached at the end of the night
 
+    // Withered flowers (the twist): catching one takes points away
+    static final float WILTED_CHANCE_START = 0.18f;  // chance a new flower is withered at the start
+    static final float WILTED_CHANCE_END = 0.35f;    // ...and at the end of the night
+    static final float WILTED_CHANCE_GHOST = 0.12f;  // lower when the ghost is helping
+    static final int WILTED_PENALTY = 2;
+
     // After passing: back to Ageha's room at night, then he goes to sleep
     static final String NEXT_SCREEN = "EveningRoomScreen";
 
@@ -67,6 +73,8 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
 
     float catchFlash = 0f;        // little white flash when catching
     float flashX, flashY;
+    float wiltFlash = 0f;         // dark flash + "-2" when catching a withered flower
+    float wiltX, wiltY;
 
     float[] starX = new float[60];
     float[] starY = new float[60];
@@ -118,6 +126,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         passed = false;
         gotItem = false;
         catchFlash = 0f;
+        wiltFlash = 0f;
     }
 
     @Override
@@ -192,11 +201,20 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
 
             if (GameApp.rectCircleOverlap(catchX, catchY, catchW, CATCH_HEIGHT, f.x, f.y, f.radius)) {
                 f.caught = true;
-                caught++;
-                catchFlash = 0.25f;
-                flashX = f.x;
-                flashY = f.y;
-                playCatchSound();
+                if (f.wilted) {
+                    caught = Math.max(0, caught - WILTED_PENALTY);
+                    wiltFlash = 0.6f;
+                    wiltX = f.x;
+                    wiltY = f.y;
+                    // same sound, low and quiet -> sounds "wrong"
+                    GameApp.getSound("catch").play(0.5f, 0.5f, 0f);
+                } else {
+                    caught++;
+                    catchFlash = 0.25f;
+                    flashX = f.x;
+                    flashY = f.y;
+                    playCatchSound();
+                }
             } else if (f.y < -f.radius) {
                 f.missed = true;
                 missed++;
@@ -205,6 +223,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         flowers.removeIf(f -> f.caught || f.missed);
 
         if (catchFlash > 0) catchFlash -= delta;
+        if (wiltFlash > 0) wiltFlash -= delta;
 
         // --- end of night (or all flowers for the item already caught) ---
         if (timeLeft <= 0 || caught >= ITEM_TARGET) {
@@ -236,6 +255,10 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         f.swayAmount = GameApp.random(10, 40);
         f.swayTime = GameApp.random(0, 6.28f);
         f.rotation = GameApp.random(0, 360);
+        float wiltChance = ghostHelping
+                ? WILTED_CHANCE_GHOST
+                : WILTED_CHANCE_START + (WILTED_CHANCE_END - WILTED_CHANCE_START) * progress;
+        f.wilted = GameApp.random(0f, 1f) < wiltChance;
         flowers.add(f);
     }
 
@@ -252,6 +275,10 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         if (catchFlash > 0) {
             int a = (int) (255 * (catchFlash / 0.25f));
             GameApp.drawCircle(flashX, flashY, 30 + (0.25f - catchFlash) * 120, new Color(1, 1, 1, a / 255f * 0.5f));
+        }
+        if (wiltFlash > 0) {
+            float k = wiltFlash / 0.6f;
+            GameApp.drawCircle(wiltX, wiltY, 30 + (1 - k) * 60, new Color(0.35f, 0.1f, 0.2f, 0.5f * k));
         }
         if (ghostHelping && state != State.INTRO) drawGhost();
         GameApp.endShapeRendering();
@@ -284,6 +311,10 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
 
     /** Queen of the Night: big white flower, 6 petals + pale center. */
     void drawFlower(Flower f) {
+        if (f.wilted) {
+            drawWiltedFlower(f);
+            return;
+        }
         Color petal = new Color(0.95f, 0.95f, 0.95f, 1);
         Color center = new Color(0.75f, 0.75f, 0.7f, 1);
         GameApp.drawCircle(f.x, f.y, f.radius * 1.4f, new Color(1, 1, 1, 0.08f)); // soft glow
@@ -292,6 +323,22 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
             float px = f.x + (float) Math.cos(ang) * f.radius * 0.6f;
             float py = f.y + (float) Math.sin(ang) * f.radius * 0.6f;
             GameApp.drawCircle(px, py, f.radius * 0.45f, petal);
+        }
+        GameApp.drawCircle(f.x, f.y, f.radius * 0.35f, center);
+    }
+
+    /** Withered flower: dark grey, drooping petals, no glow. Don't catch it! */
+    void drawWiltedFlower(Flower f) {
+        Color petal = new Color(0.30f, 0.27f, 0.31f, 1);
+        Color center = new Color(0.10f, 0.08f, 0.10f, 1);
+        // stem-like dark shadow so it reads as "dead"
+        GameApp.drawCircle(f.x, f.y, f.radius * 1.3f, new Color(0.25f, 0.05f, 0.12f, 0.18f));
+        // 5 petals hanging down (only the lower half of the circle)
+        for (int i = 0; i < 5; i++) {
+            double ang = Math.toRadians(200 + i * 35 + Math.sin(f.swayTime * 2 + i) * 6);
+            float px = f.x + (float) Math.cos(ang) * f.radius * 0.7f;
+            float py = f.y + (float) Math.sin(ang) * f.radius * 0.7f;
+            GameApp.drawCircle(px, py, f.radius * 0.38f, petal);
         }
         GameApp.drawCircle(f.x, f.y, f.radius * 0.35f, center);
     }
@@ -328,6 +375,9 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         if (ghostHelping) {
             GameApp.drawText("f1_small", "A little ghost is helping you.", 170, 610, "gray-300");
         }
+        if (wiltFlash > 0) {
+            GameApp.drawText("f1_mid", "-" + WILTED_PENALTY, wiltX - 15, wiltY + 60 + (0.6f - wiltFlash) * 60, "red-400");
+        }
     }
 
     void drawOverlay(String[] lines) {
@@ -351,6 +401,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
                 "\"...Flowers? Falling from the ceiling?\"",
                 "They only bloom for one night. Catch them before they hit the ground.",
                 "Catch " + PASS_TARGET + " to clear the floor. Catch " + ITEM_TARGET + " for something more.",
+                "Don't touch the withered grey ones. They take " + WILTED_PENALTY + " flowers away.",
                 "A / D or LEFT / RIGHT to move",
                 "Press ENTER to start"
         };
