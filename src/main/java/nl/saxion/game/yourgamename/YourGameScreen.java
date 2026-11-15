@@ -24,7 +24,10 @@ public class YourGameScreen extends ScalableGameScreen {
             new Rectangle(442, 425, 62, 63);
 
     Rectangle mainTableBounds =
-            new Rectangle(646, 393, 156, 120);
+            new Rectangle(646, 430, 156, 82);
+
+    Rectangle chairBounds =
+            new Rectangle(699, 394, 42, 70);
 
     Rectangle wardrobeBounds =
             new Rectangle(839, 481, 106, 116);
@@ -115,7 +118,8 @@ public class YourGameScreen extends ScalableGameScreen {
 
 
         ageha.update(delta,
-                new Rectangle[]{roomBounds},
+                new Rectangle[]{roomBounds}
+                ,chairBounds,
                 bedBounds,
                 sideTableBounds,
                 mainTableBounds,
