@@ -31,6 +31,12 @@ public class Ageha {
         playerX = startX;
         playerY = startY;
     }
+    public void setPosition(float x, float y) {
+        playerX = x;
+        playerY = y;
+
+        playerBounds.set(playerX + 20, playerY + 5, 40, 30);
+    }
 
     // Checks whether Ageha can move to a position
     private boolean canMoveTo(float x, float y,
@@ -43,7 +49,7 @@ public class Ageha {
         boolean insideWalkableArea = false;
 
         for (Rectangle area : walkableAreas) {
-            if (area.contains(playerBounds)) {
+            if (area.overlaps(playerBounds) || area.contains(playerBounds)) {
                 insideWalkableArea = true;
                 break;
             }

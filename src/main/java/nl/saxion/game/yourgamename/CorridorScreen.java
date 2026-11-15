@@ -10,13 +10,13 @@ public class CorridorScreen extends ScalableGameScreen{
     Ageha ageha = new Ageha(800, 230);
 
     // Walkable corridor area
-    Rectangle corridorBounds =
-            new Rectangle(255, 190, 835, 145);
+    Rectangle corridorBounds = new Rectangle(290, 220, 765, 85);
 
     Rectangle roomDoorBounds =
             new Rectangle(693, 317, 75, 101);
 
-    Rectangle toMainHallZone = new Rectangle(990, 190, 50, 145);
+    Rectangle toMainHallZone =
+            new Rectangle(1040, 190, 40, 145);
 
     // Door question
     boolean showDoorQuestion = false;
@@ -65,6 +65,8 @@ public class CorridorScreen extends ScalableGameScreen{
         GameApp.addTexture("corridor",
                 "textures/backgrounds/corridor.png");
         GameApp.addFont("main", "fonts/basic.ttf", 24);
+
+        ageha.setPosition(800, 230);
     }
 
     @Override
@@ -87,13 +89,28 @@ public class CorridorScreen extends ScalableGameScreen{
                 GameApp.switchScreen("YourGameScreen");
             }
 
-            if(ageha.isNearDoor(toMainHallZone)){
-                GameApp.switchScreen("MainHallScreen");
-            }
+        if (ageha.isNearDoor(toMainHallZone)) {
+            GameApp.switchScreen("MainHallScreen");
+        }
 
         ageha.draw(delta);
 
         GameApp.endSpriteRendering();
     }
-    public void hide(){}
+    public void hide(){
+        GameApp.disposeTexture("ageha_down_a");
+        GameApp.disposeTexture("ageha_down_b");
+        GameApp.disposeTexture("ageha_down_idle");
+        GameApp.disposeTexture("ageha_up_idle");
+        GameApp.disposeTexture("ageha_up_a");
+        GameApp.disposeTexture("ageha_up_b");
+        GameApp.disposeTexture("ageha_left_b");
+        GameApp.disposeTexture("ageha_left_a");
+        GameApp.disposeTexture("ageha_left_idle");
+        GameApp.disposeTexture("ageha_right_b");
+        GameApp.disposeTexture("ageha_right_a");
+        GameApp.disposeTexture("ageha_right_idle");
+        GameApp.disposeTexture("corridor");
+        GameApp.disposeFont("main");
+    }
 }
