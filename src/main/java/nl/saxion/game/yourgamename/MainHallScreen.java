@@ -1,5 +1,6 @@
 package nl.saxion.game.yourgamename;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
@@ -7,12 +8,12 @@ import nl.saxion.gameapp.screens.ScalableGameScreen;
 public class MainHallScreen extends ScalableGameScreen {
     Ageha ageha = new Ageha(100, 350);
 
-    Rectangle mainFloor      = new Rectangle(94, 84, 1092, 392);
+    Rectangle mainFloor = new Rectangle(125, 115, 1030, 330);
 
-    Rectangle leftCorridor   = new Rectangle(0,    322, 154, 86);
-    Rectangle rightCorridor  = new Rectangle(1126, 322, 154, 86);
-    Rectangle topCorridor    = new Rectangle(596,  416, 88, 304);
-    Rectangle bottomCorridor = new Rectangle(596,  0,   88, 144);
+    Rectangle leftCorridor = new Rectangle(25, 345, 105, 45);
+    Rectangle rightCorridor = new Rectangle(1150, 345, 105, 45);
+    Rectangle topCorridor = new Rectangle(620, 445, 40, 250);
+    Rectangle bottomCorridor = new Rectangle(620, 25, 40, 100);
 
     Rectangle stairs      = new Rectangle(920, 402, 268, 74);
     Rectangle tvBounds    = new Rectangle(106, 160, 104, 130);
@@ -24,7 +25,7 @@ public class MainHallScreen extends ScalableGameScreen {
     Rectangle petBowls    = new Rectangle(1026, 124, 62, 22);
 
     Rectangle toLeftCorridorZone =
-            new Rectangle(0, 322, 94, 86);
+            new Rectangle(0, 322, 45, 86);
 
     Rectangle toRightCorridorZone =
             new Rectangle(1186, 322, 94, 86);
@@ -71,6 +72,9 @@ public class MainHallScreen extends ScalableGameScreen {
         GameApp.addTexture("main_hall",
                 "textures/backgrounds/main_hall.png");
         GameApp.addFont("main", "fonts/basic.ttf", 24);
+
+        ageha.setPosition(100, 350);
+
     }
 
     public void render(float delta){
@@ -105,6 +109,21 @@ public class MainHallScreen extends ScalableGameScreen {
         ageha.draw(delta);
         GameApp.endSpriteRendering();
     }
-    public void hide(){}
+    public void hide(){
+        GameApp.disposeTexture("ageha_down_a");
+        GameApp.disposeTexture("ageha_down_b");
+        GameApp.disposeTexture("ageha_down_idle");
+        GameApp.disposeTexture("ageha_up_idle");
+        GameApp.disposeTexture("ageha_up_a");
+        GameApp.disposeTexture("ageha_up_b");
+        GameApp.disposeTexture("ageha_left_b");
+        GameApp.disposeTexture("ageha_left_a");
+        GameApp.disposeTexture("ageha_left_idle");
+        GameApp.disposeTexture("ageha_right_b");
+        GameApp.disposeTexture("ageha_right_a");
+        GameApp.disposeTexture("ageha_right_idle");
+        GameApp.disposeTexture("main_hall");
+        GameApp.disposeFont("main");
+    }
 
 }

@@ -6,8 +6,6 @@ import nl.saxion.gameapp.screens.ScalableGameScreen;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.Gdx;
 
-import static java.awt.Color.green;
-import static java.awt.Color.red;
 
 public class YourGameScreen extends ScalableGameScreen {
 
@@ -35,8 +33,7 @@ public class YourGameScreen extends ScalableGameScreen {
     Rectangle safeBounds =
             new Rectangle(950, 332, 38, 88);
 
-    Rectangle roomBounds =
-            new Rectangle(301, 180, 687, 436);
+    Rectangle roomBounds = new Rectangle(335, 215, 620, 370);
 
     Rectangle middleWall =
             new Rectangle(301, 490, 687, 126);
@@ -148,5 +145,19 @@ public class YourGameScreen extends ScalableGameScreen {
 
     @Override
     public void hide() {
+        GameApp.disposeTexture("ageha_down_a");
+        GameApp.disposeTexture("ageha_down_b");
+        GameApp.disposeTexture("ageha_down_idle");
+        GameApp.disposeTexture("ageha_up_idle");
+        GameApp.disposeTexture("ageha_up_a");
+        GameApp.disposeTexture("ageha_up_b");
+        GameApp.disposeTexture("ageha_left_b");
+        GameApp.disposeTexture("ageha_left_a");
+        GameApp.disposeTexture("ageha_left_idle");
+        GameApp.disposeTexture("ageha_right_b");
+        GameApp.disposeTexture("ageha_right_a");
+        GameApp.disposeTexture("ageha_right_idle");
+        GameApp.disposeTexture("room");
+        GameApp.disposeFont("main");
     }
 }
