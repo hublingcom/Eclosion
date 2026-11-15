@@ -42,7 +42,7 @@ public class MainMenuScreen extends ScalableGameScreen {
         // Render the main menu
         GameApp.clearScreen("black");
         GameApp.startSpriteRendering();
-        GameApp.drawTextCentered("basic", "Start Game (press enter)", getWorldWidth()/2, getWorldHeight()/2, "amber-500");
+        GameApp.drawTextCentered("basic", "ECLOSION (press enter to start)", getWorldWidth()/2, getWorldHeight()/2, "amber-500");
         GameApp.endSpriteRendering();
     }
 
