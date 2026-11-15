@@ -10,7 +10,7 @@ import nl.saxion.gameapp.screens.ScalableGameScreen;
  * a flickering lit window, the title "ECLOSION" and a small white butterfly.
  *
  * ENTER  -> door creaks, music fades, screen fades to black -> START_SCREEN
- * Dev shortcuts (for testing): 1 = Floor 1 minigame, 2 = Ageha's room, 3 = stairs -> night cutscene -> Floor 1, 4 = odd color, 5 = dialogue demo, 6 = night -> morning, 7 = door
+ * Dev shortcuts (for testing): 1 = Floor 1 minigame, 2 = Ageha's room, 3 = stairs -> night cutscene -> Floor 1, 6 = demo ending, 7 = door
  *
  * Image  (src/main/resources/images): title_bg.png (1280x720)
  * Sounds (src/main/resources/audio): title_bgm.ogg, rain.ogg, thunder.wav, door_open.wav
@@ -18,7 +18,7 @@ import nl.saxion.gameapp.screens.ScalableGameScreen;
  */
 public class TitleScreen extends ScalableGameScreen {
 
-    static final String START_SCREEN = "RoomScreen";   // where "Press ENTER" takes you (Day 1: Ageha's room)
+    static final String START_SCREEN = "YourGameScreen";   // where "Press ENTER" takes you: Ageha's room (Chidera)
 
     static final float W = 1280, H = 720;
     static final int DROPS = 130;
@@ -91,11 +91,9 @@ public class TitleScreen extends ScalableGameScreen {
             }
             // dev shortcuts
             if (GameApp.isKeyJustPressed(Input.Keys.NUM_1)) { GameApp.switchScreen("Floor1FlowerScreen"); return; }
-            if (GameApp.isKeyJustPressed(Input.Keys.NUM_2)) { GameApp.switchScreen("RoomScreen"); return; }
-            if (GameApp.isKeyJustPressed(Input.Keys.NUM_4)) { GameApp.switchScreen("OddColorScreen"); return; }
-            if (GameApp.isKeyJustPressed(Input.Keys.NUM_5)) { GameApp.switchScreen("DialogueDemoScreen"); return; }
-            if (GameApp.isKeyJustPressed(Input.Keys.NUM_6)) { DayTransitionScreen.prepare(2, "RoomScreen"); GameApp.switchScreen("DayTransitionScreen"); return; }
-            if (GameApp.isKeyJustPressed(Input.Keys.NUM_7)) { DoorTransitionScreen.go("RoomScreen", "Ageha's room"); return; }
+            if (GameApp.isKeyJustPressed(Input.Keys.NUM_2)) { GameApp.switchScreen("YourGameScreen"); return; }
+            if (GameApp.isKeyJustPressed(Input.Keys.NUM_6)) { DayTransitionScreen.prepareDemoEnd(); GameApp.switchScreen("DayTransitionScreen"); return; }
+            if (GameApp.isKeyJustPressed(Input.Keys.NUM_8)) { GameApp.switchScreen("MainHallScreen"); return; }
             if (GameApp.isKeyJustPressed(Input.Keys.NUM_3)) {
                 FloorTransitionScreen.prepare("Day 2", "Floor 1", "Loneliness", "NightCutsceneScreen");
                 NightCutsceneScreen.prepare("Floor1FlowerScreen");
@@ -220,7 +218,7 @@ public class TitleScreen extends ScalableGameScreen {
         if (state == State.IDLE) {
             float blink = 0.45f + 0.35f * (float) Math.sin(totalTime * 2.5f);
             shadowText("ti_sub", "Press ENTER", TITLE_X, TITLE_Y - 150, new Color(0.9f, 0.9f, 0.9f, blink));
-            GameApp.drawText("ti_small", "dev: 1 floor1  2 room  3 stairs  4 colors  5 dialogue  6 night  7 door", W - 560, 18, new Color(0.5f, 0.5f, 0.5f, 0.5f));
+            GameApp.drawText("ti_small", "dev: 1 floor1  2 room  3 stairs  6 demo end  8 hall", W - 420, 18, new Color(0.5f, 0.5f, 0.5f, 0.5f));
         }
     }
 

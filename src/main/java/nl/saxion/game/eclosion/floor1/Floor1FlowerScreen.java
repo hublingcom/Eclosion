@@ -2,7 +2,7 @@ package nl.saxion.game.eclosion.floor1;
 
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import nl.saxion.game.eclosion.DayTransitionScreen;
+import nl.saxion.game.eclosion.DoorTransitionScreen;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 
@@ -40,8 +40,8 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
     static final float FALL_MAX = 240f;
     static final float FALL_BONUS_END = 120f;    // extra speed reached at the end of the night
 
-    // After passing: night falls, the next day starts in Ageha's room
-    static final String NEXT_SCREEN = "DayTransitionScreen";
+    // After passing: back to Ageha's room at night, then he goes to sleep
+    static final String NEXT_SCREEN = "EveningRoomScreen";
 
     // ---------- state ----------
     enum State { INTRO, PLAYING, RESULT }
@@ -91,7 +91,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         for (String d : dirs) {
             for (String f : frames) {
                 String name = "ageha_" + d + "_" + f;
-                GameApp.addTexture(name, "images/" + name + ".png");
+                GameApp.addTexture("f1_" + name, "textures/Ageha_move/" + name + ".png");
             }
         }
 
@@ -136,8 +136,9 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
             if (GameApp.isKeyJustPressed(Input.Keys.ENTER)) {
                 if (passed) {
                     // TODO: save gotItem somewhere global (photo piece) before switching
-                    DayTransitionScreen.prepare(3, "RoomScreen");
-                    GameApp.switchScreen(NEXT_SCREEN);
+                    // DEMO: back to Ageha's room at night -> walk to the bed -> sleep -> End of Demo
+                    // (full game later: DayTransitionScreen.prepare(3, "YourGameScreen"))
+                    DoorTransitionScreen.go(NEXT_SCREEN, "Ageha's room");
                     return;
                 } else {
                     resetRound();
@@ -205,9 +206,9 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
 
         if (catchFlash > 0) catchFlash -= delta;
 
-        // --- end of night ---
-        if (timeLeft <= 0) {
-            timeLeft = 0;
+        // --- end of night (or all flowers for the item already caught) ---
+        if (timeLeft <= 0 || caught >= ITEM_TARGET) {
+            timeLeft = Math.max(0, timeLeft);
             passed = caught >= PASS_TARGET;
             gotItem = caught >= ITEM_TARGET;
             if (!passed) {
@@ -315,7 +316,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         } else {
             name = "ageha_down_idle";
         }
-        GameApp.drawTexture(name, agehaX, AGEHA_Y, AGEHA_WIDTH, AGEHA_HEIGHT);
+        GameApp.drawTexture("f1_" + name, agehaX, AGEHA_Y, AGEHA_WIDTH, AGEHA_HEIGHT);
     }
 
     void drawHud() {
@@ -395,7 +396,7 @@ public class Floor1FlowerScreen extends ScalableGameScreen {
         String[] frames = {"idle", "a", "b"};
         for (String d : dirs) {
             for (String f : frames) {
-                GameApp.disposeTexture("ageha_" + d + "_" + f);
+                GameApp.disposeTexture("f1_ageha_" + d + "_" + f);
             }
         }
     }

@@ -1,6 +1,9 @@
 package nl.saxion.game.yourgamename;
 
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Rectangle;
+import nl.saxion.game.eclosion.FloorTransitionScreen;
+import nl.saxion.game.eclosion.NightCutsceneScreen;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 
@@ -34,6 +37,9 @@ public class MainHallScreen extends ScalableGameScreen {
 
     Rectangle toDownCorridorZone =
             new Rectangle(596, 0, 88, 84);
+
+    // standing right below the stairs (stairs are at y 402) + E -> go upstairs
+    Rectangle stairsZone = new Rectangle(920, 370, 268, 34);
     public MainHallScreen(){
         super(1280,720);
     }
@@ -100,6 +106,15 @@ public class MainHallScreen extends ScalableGameScreen {
 
         if(ageha.isNearDoor(toLeftCorridorZone)){
             GameApp.switchScreen("CorridorScreen");
+        }
+
+        // go upstairs: stairs scene -> night cutscene -> Floor 1 minigame
+        if (ageha.isNearDoor(stairsZone) && GameApp.isKeyJustPressed(Input.Keys.E)) {
+            FloorTransitionScreen.prepare("Day 2", "Floor 1", "Loneliness", "NightCutsceneScreen");
+            NightCutsceneScreen.prepare("Floor1FlowerScreen");
+            GameApp.endSpriteRendering();
+            GameApp.switchScreen("FloorTransitionScreen");
+            return;
         }
 
         ageha.draw(delta);

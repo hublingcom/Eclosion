@@ -16,6 +16,9 @@ import nl.saxion.gameapp.screens.ScalableGameScreen;
  * clock ticks, then dawn light fills the room, birds, and a card: "Day 3 / 15 June / 5 days left".
  * ENTER skips.
  *
+ * Demo version: DayTransitionScreen.prepareDemoEnd() -> he falls asleep, the night stays,
+ * "End of Demo / Thank you for playing", then back to the title screen.
+ *
  * The game runs 13-19 June; Day 7 (19 June) is his 18th birthday (story bible 2.1).
  *
  * Images: images/room.png (1600x902, the one with the black margin), images/ageha_left_idle.png
@@ -25,10 +28,18 @@ public class DayTransitionScreen extends ScalableGameScreen {
 
     static int day = 2;
     static String nextScreen = "RoomScreen";
+    static boolean demoEnd = false;
 
     public static void prepare(int newDay, String next) {
         day = newDay;
         nextScreen = next;
+        demoEnd = false;
+    }
+
+    /** End of the demo: Ageha falls asleep, the night stays, "End of Demo", back to the title. */
+    public static void prepareDemoEnd() {
+        nextScreen = "TitleScreen";
+        demoEnd = true;
     }
 
     static final float W = 1280, H = 720;
@@ -55,7 +66,7 @@ public class DayTransitionScreen extends ScalableGameScreen {
     @Override
     public void show() {
         GameApp.addTexture("dt_room", "images/room.png");
-        GameApp.addTexture("dt_ageha", "images/ageha_left_idle.png");
+        GameApp.addTexture("dt_ageha", "textures/Ageha_move/ageha_left_idle.png");
         GameApp.addFont("dt_big", "fonts/basic.ttf", 72);
         GameApp.addFont("dt_mid", "fonts/basic.ttf", 30);
         GameApp.addSound("dt_tick", "audio/tick.wav");
@@ -74,11 +85,11 @@ public class DayTransitionScreen extends ScalableGameScreen {
         if (!lampOff && t > T_LAMP_OFF) { GameApp.playSound("dt_click", 0.9f); lampOff = true; }
         // clock ticks once per second during the night
         int sec = (int) t;
-        if (lampOff && t < T_DAWN + 1.5f && sec != lastTick) {
+        if (lampOff && (demoEnd ? t < T_END - 1 : t < T_DAWN + 1.5f) && sec != lastTick) {
             lastTick = sec;
             GameApp.getSound("dt_tick").play(0.45f, sec % 2 == 0 ? 1f : 0.9f, 0f);
         }
-        if (!birds && t > T_DAWN + 0.8f) { GameApp.playSound("dt_birds", 0.6f); birds = true; }
+        if (!demoEnd && !birds && t > T_DAWN + 0.8f) { GameApp.playSound("dt_birds", 0.6f); birds = true; }
 
         if (t > T_END || (t > 1f && GameApp.isKeyJustPressed(Input.Keys.ENTER))) {
             GameApp.switchScreen(nextScreen);
@@ -109,7 +120,7 @@ public class DayTransitionScreen extends ScalableGameScreen {
 
         // ---------- light level ----------
         float night = clamp01((t - T_LAMP_OFF) / 0.25f);          // lamp off: quick darkening
-        float dawn = clamp01((t - T_DAWN) / 3.0f);                  // slow sunrise
+        float dawn = demoEnd ? 0 : clamp01((t - T_DAWN) / 3.0f);    // slow sunrise (no morning in the demo end)
         float dark = night * (1 - dawn);
 
         // night: deep blue darkness
@@ -145,17 +156,24 @@ public class DayTransitionScreen extends ScalableGameScreen {
         GameApp.drawRect(0, 0, W, H, new Color(0, 0, 0, 1 - clamp01(t / 0.8f)));
 
         // day card
-        float cardA = clamp01((t - T_CARD) / 0.8f) * (1 - clamp01((t - (T_END - 0.7f)) / 0.7f));
+        float cardStart = demoEnd ? T_DAWN - 0.5f : T_CARD;
+        float cardA = clamp01((t - cardStart) / 0.8f) * (1 - clamp01((t - (T_END - 0.7f)) / 0.7f));
         if (cardA > 0) GameApp.drawRect(0, 0, W, H, new Color(0, 0, 0, 0.65f * cardA));
         GameApp.endShapeRendering();
 
         if (cardA > 0) {
             GameApp.startSpriteRendering();
-            GameApp.drawTextCentered("dt_big", "Day " + day, W / 2, H / 2 + 40, new Color(0.95f, 0.95f, 0.95f, cardA));
-            GameApp.drawTextCentered("dt_mid", (12 + day) + " June", W / 2, H / 2 - 30, new Color(0.65f, 0.65f, 0.68f, cardA));
-            int left = 8 - day;   // counting the birthday itself
-            String countdown = left <= 1 ? "Today is the day." : left + " days left";
-            GameApp.drawTextCentered("dt_mid", countdown, W / 2, H / 2 - 75, new Color(0.65f, 0.65f, 0.68f, cardA));
+            if (demoEnd) {
+                GameApp.drawTextCentered("dt_big", "End of Demo", W / 2, H / 2 + 40, new Color(0.95f, 0.95f, 0.95f, cardA));
+                GameApp.drawTextCentered("dt_mid", "Thank you for playing", W / 2, H / 2 - 30, new Color(0.65f, 0.65f, 0.68f, cardA));
+                GameApp.drawTextCentered("dt_mid", "Eclosion  -  Team 91", W / 2, H / 2 - 75, new Color(0.65f, 0.65f, 0.68f, cardA));
+            } else {
+                GameApp.drawTextCentered("dt_big", "Day " + day, W / 2, H / 2 + 40, new Color(0.95f, 0.95f, 0.95f, cardA));
+                GameApp.drawTextCentered("dt_mid", (12 + day) + " June", W / 2, H / 2 - 30, new Color(0.65f, 0.65f, 0.68f, cardA));
+                int left = 8 - day;   // counting the birthday itself
+                String countdown = left <= 1 ? "Today is the day." : left + " days left";
+                GameApp.drawTextCentered("dt_mid", countdown, W / 2, H / 2 - 75, new Color(0.65f, 0.65f, 0.68f, cardA));
+            }
             GameApp.endSpriteRendering();
         }
     }

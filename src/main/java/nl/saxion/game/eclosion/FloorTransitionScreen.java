@@ -71,7 +71,7 @@ public class FloorTransitionScreen extends ScalableGameScreen {
         GameApp.addFont("tr_big", "fonts/basic.ttf", 60);
         GameApp.addFont("tr_small", "fonts/basic.ttf", 28);
         for (String f : new String[]{"idle", "a", "b"}) {
-            GameApp.addTexture("ageha_right_" + f, "images/ageha_right_" + f + ".png");
+            GameApp.addTexture("tr_ageha_right_" + f, "textures/Ageha_move/ageha_right_" + f + ".png");
         }
         GameApp.addSound("step_1", "audio/step_1.wav");
         GameApp.addSound("step_2", "audio/step_2.wav");
@@ -261,7 +261,7 @@ public class FloorTransitionScreen extends ScalableGameScreen {
             if (phase < 0) phase += 4;
             frame = phase == 0 ? "a" : phase == 2 ? "b" : "idle";
         }
-        GameApp.drawTexture("ageha_right_" + frame, feetX() - AGEHA_W / 2, feetY() - 4, AGEHA_W, AGEHA_H);
+        GameApp.drawTexture("tr_ageha_right_" + frame, feetX() - AGEHA_W / 2, feetY() - 4, AGEHA_W, AGEHA_H);
     }
 
     void drawOverlays() {
@@ -308,7 +308,7 @@ public class FloorTransitionScreen extends ScalableGameScreen {
         GameApp.disposeFont("tr_big");
         GameApp.disposeFont("tr_small");
         for (String f : new String[]{"idle", "a", "b"}) {
-            GameApp.disposeTexture("ageha_right_" + f);
+            GameApp.disposeTexture("tr_ageha_right_" + f);
         }
         GameApp.disposeSound("step_1");
         GameApp.disposeSound("step_2");
