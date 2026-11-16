@@ -20,7 +20,7 @@ public class MiniGame2 extends ScalableGameScreen {
             new Rectangle(402, 432, 25, 64),    // nến trái
             new Rectangle(947, 432, 25, 64)     // nến phải
     };
-    Rectangle item = new Rectangle(480, 380, 335, 110);
+    Rectangle item = new Rectangle(560, 330, 170, 60);
     int circleX[] = {562, 640, 718, 562, 640, 718, 562, 640, 718};
     int circleY[] = {296, 296, 296, 219, 219, 219, 142, 142, 142};
     int score = 0;
@@ -141,6 +141,7 @@ public class MiniGame2 extends ScalableGameScreen {
             GameApp.drawText("rule", "Press [Y] to restart ", 540, 255, "black");
             GameApp.endSpriteRendering();
             if (GameApp.isKeyJustPressed(Input.Keys.Y)) {
+                diff = 60;
                 state = 1;
                 round = 0;
                 countdown = 5f;
@@ -154,14 +155,16 @@ public class MiniGame2 extends ScalableGameScreen {
             GameApp.endSpriteRendering();
             // item
             GameApp.startShapeRenderingFilled();
-            GameApp.drawCircle(645, 445, 10, "gold");
+            GameApp.drawCircle(645, 475, 10, "gold");
             GameApp.endShapeRendering();
 
             GameApp.startSpriteRendering();
             ageha.draw(delta);
             GameApp.endSpriteRendering();
-            if ( ageha.isNearDoor(item)){
-                state = 0;
+            if ( ageha.isNearDoor(item)) {
+                if (GameApp.isKeyJustPressed(Input.Keys.E)) {
+                    state = 0;
+                }
             }
 
         }
