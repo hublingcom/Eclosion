@@ -12,6 +12,13 @@ public class Ageha {
     private float playerX;
     private float playerY;
 
+    public float centerX(){
+        return playerX + 40;
+    }
+    public float feetY(){
+        return playerY + 5;
+    }
+
     private final int speed = 5;
 
     // Collision rectangle
