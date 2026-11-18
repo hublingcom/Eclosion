@@ -2,88 +2,48 @@ package nl.saxion.game.eclosion.rooms;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Rectangle;
-import nl.saxion.game.eclosion.ui.DialogueLine;
 import nl.saxion.game.eclosion.explore.ExploreScreen;
+import nl.saxion.game.eclosion.explore.Interactable;
 import nl.saxion.game.eclosion.explore.Npc;
+import nl.saxion.game.eclosion.explore.TimeOfDay;
+import nl.saxion.game.eclosion.ui.DialogueLine;
 
 /**
  * The main hall: four exits, the staircase top right, the window top left.
- * Ageha comes in through the hallway on the left. Bluma stands just below the window.
+ * Ageha comes in through the hallway on the left. Bluma stands just below the window, Niri next to her.
  *
  * Positions are IMAGE pixels of the main hall picture (1669 x 942).
- * Items to look at: window, TV, wine, cat bed and bowls. Bluma: talk (minigames).
+ * Items to look at: window, TV, wine, cat bed and bowls. Bluma: talk (minigames). Niri: a short "Hey!".
+ * After a minigame it is night: Niri is gone, Bluma only tells Ageha to go to sleep (no minigames).
  */
 public class MainHallScreen extends ExploreScreen {
 
-    public MainHallScreen() {
-        super("main_hall", "textures/rooms/main_hall.png", 1669, 942);
-        agehaH = 92;   // the hall is drawn smaller than his room
-        portraits.add(BLUMA_PORTRAIT);
-        portraits.add("ageha_neutral");
-    }
-
-    private Npc bluma;
-    private boolean talking = false;
+    /** Name used by the minigames when they send Ageha back to the hall. */
+    public static final String FROM_MINIGAME = "Minigame";
 
     /**
      * Bluma's portrait in dialogue. For now always the neutral one; the other expressions
      * are ready in textures/portraits: bluma_surprised, bluma_sad, bluma_worried.
      */
     private static final String BLUMA_PORTRAIT = "bluma_neutral";
+    private static final String AGEHA_PORTRAIT = "ageha_neutral";
+    private static final String NIRI_PORTRAIT = "niri_laugh";
+    private static final float NIRI_X = 345, NIRI_Y = 356;   // image: just to the right of Bluma
 
-    /**
-     * Talking to Bluma: with portraits, Ageha on the LEFT and Bluma on the RIGHT.
-     * She only says "...", then the three options appear.
-     */
-    private void talkToBluma() {
-        turnToAgeha(bluma);
-        talking = true;
-        dialogue.setPortraits("ageha_neutral", BLUMA_PORTRAIT);   // (left, right)
-        dialogue.start(bluma(BLUMA_PORTRAIT, "..."));
-        // under her line, three options
-        dialogue.ask(this::blumaChoice, "Minigame 1", "Minigame 2", "Exit");
+    private Npc bluma;
+    private Npc niri;
+    private Interactable niriItem;                          // E near Niri (only by day, when he is there)
+    private boolean talking = false;
+
+    public MainHallScreen() {
+        super("main_hall", "textures/rooms/main_hall.png", 1669, 942);
+        agehaH = 87;   // the hall's window is drawn 4% bigger than the corridor's (see CorridorScreen)
+        portraits.add(BLUMA_PORTRAIT);
+        portraits.add(AGEHA_PORTRAIT);
+        portraits.add(NIRI_PORTRAIT);
     }
 
-    private void blumaChoice(int choice) {
-        endTalk();
-        if (choice == 0) {
-            startMinigame(1);
-        } else if (choice == 1) {
-            startMinigame(2);
-        }
-        // choice 2 = Exit: the conversation just ends
-    }
-
-    /** Fades over to the minigame. When it is done, Ageha comes back here, in front of Bluma. */
-    private void startMinigame(int number) {
-        if (number == 1) {
-            goTo("Floor1FlowerScreen");   // Minigame 1: "Queen of the Night" (Dawon)
-        } else {
-            goTo("MiniGame2");            // Minigame 2: find the odd colour (Giang)
-        }
-    }
-
-    /** Name used by the minigames when they send Ageha back to the hall. */
-    public static final String FROM_MINIGAME = "Minigame";
-
-    /** Back to normal: no portraits (inner voice), Bluma looks forward again. */
-    private void endTalk() {
-        talking = false;
-        dialogue.setPortraits(null, null);
-        bluma.facing = "down";
-    }
-
-    private DialogueLine bluma(String portrait, String text) {
-        return new DialogueLine("Bluma", portrait, DialogueLine.Side.RIGHT, text);
-    }
-
-    @Override
-    protected void onTextFinished() {
-        if (talking) {
-            endTalk();                           // done talking: she faces forward again
-        }
-    }
-
+    // ---------- the hall ----------
     @Override
     protected void buildRoom() {
         floor = imageRect(122, 320, 1426, 513);
@@ -153,8 +113,12 @@ public class MainHallScreen extends ExploreScreen {
 
         // Bluma: frames are 284 x 428, she is 412 high inside them. Feet just below the window.
         bluma = addNpc("bluma_walk", 284, 428, 412, 265, 350, "down");
-        // E near her: Ageha walks up to her, then they talk
+        // Niri waits next to Bluma (he went ahead of Ageha); shown or hidden in placePlayer
+        niri = addNiri();
+        showNpcAtImage(niri, NIRI_X, NIRI_Y, "down");
+        // E near one of them: Ageha walks up, then they talk
         addSpecial("Bluma", npcArea(bluma), () -> walkUpTo(bluma, this::talkToBluma));
+        niriItem = addSpecial("Niri", npcArea(niri), () -> walkUpTo(niri, this::talkToNiri));
     }
 
     @Override
@@ -167,9 +131,85 @@ public class MainHallScreen extends ExploreScreen {
     @Override
     protected void placePlayer() {
         if (FROM_MINIGAME.equals(arrivedFrom)) {
-            placeBeside(bluma);                   // back from a minigame: standing next to Bluma
+            TimeOfDay.startNight();               // after a minigame it is night: time to sleep
+            placeFeetAtImage(295, 395, "up");     // back from a minigame: in front of Bluma (and Niri by day)
         } else {
             placeFeetAtImage(70, 478, "right");   // in the left hallway (coming from the corridor), walking in
+        }
+        // by day Niri waits next to Bluma (he went ahead of Ageha); at night he is gone
+        if (TimeOfDay.isNight()) {
+            hideNpc(niri);
+            unblockNpc(niri);
+        } else {
+            showNpcAtImage(niri, NIRI_X, NIRI_Y, "down");
+            blockNpc(niri);
+        }
+        niriItem.enabled = !TimeOfDay.isNight();
+    }
+
+    // ---------- talking to Bluma ----------
+    /**
+     * Talking to Bluma: with portraits, Ageha on the LEFT and Bluma on the RIGHT.
+     * She only says "...", then the three options appear.
+     * At night she only tells him to go to sleep (no minigames until the next day).
+     */
+    private void talkToBluma() {
+        turnToAgeha(bluma);
+        talking = true;
+        dialogue.setPortraits(AGEHA_PORTRAIT, BLUMA_PORTRAIT);   // (left, right)
+        if (TimeOfDay.isNight()) {
+            dialogue.start(bluma(BLUMA_PORTRAIT, "You should go sleep, Ageha."));
+            return;
+        }
+        dialogue.start(bluma(BLUMA_PORTRAIT, "..."));
+        // under her line, three options
+        dialogue.ask(this::blumaChoice, "Minigame 1", "Minigame 2", "Exit");
+    }
+
+    private void blumaChoice(int choice) {
+        endTalk();
+        if (choice == 0) {
+            startMinigame(1);
+        } else if (choice == 1) {
+            startMinigame(2);
+        }
+        // choice 2 = Exit: the conversation just ends
+    }
+
+    /** Fades over to the minigame. When it is done, Ageha comes back here, in front of Bluma and Niri. */
+    private void startMinigame(int number) {
+        if (number == 1) {
+            goTo("Floor1FlowerScreen");   // Minigame 1: "Queen of the Night" (Dawon)
+        } else {
+            goTo("MiniGame2");            // Minigame 2: find the odd colour (Giang)
+        }
+    }
+
+    /** Back to normal: no portraits (inner voice), Bluma and Niri look forward again. */
+    private void endTalk() {
+        talking = false;
+        dialogue.setPortraits(null, null);
+        bluma.facing = "down";
+        niri.facing = "down";
+    }
+
+    // ---------- talking to Niri ----------
+    /** By day: Niri just says hello. */
+    private void talkToNiri() {
+        turnToAgeha(niri);
+        talking = true;
+        dialogue.setPortraits(AGEHA_PORTRAIT, NIRI_PORTRAIT);    // (left, right)
+        dialogue.start(new DialogueLine("Niri", NIRI_PORTRAIT, DialogueLine.Side.RIGHT, "Hey!"));
+    }
+
+    private DialogueLine bluma(String portrait, String text) {
+        return new DialogueLine("Bluma", portrait, DialogueLine.Side.RIGHT, text);
+    }
+
+    @Override
+    protected void onTextFinished() {
+        if (talking) {
+            endTalk();                           // done talking: she faces forward again
         }
     }
 }

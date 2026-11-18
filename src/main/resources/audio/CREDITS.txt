@@ -6,12 +6,17 @@ sfx_move, sfx_confirm, sfx_key, sfx_key_wrong, sfx_key_right (from "Interface So
   http://creativecommons.org/publicdomain/zero/1.0/
   (made softer / muffled for Eclosion)
 
-sfx_transition, dialogue_blip: made for Eclosion.
+sfx_knock, sfx_knock_fast, sfx_knock_hard: knocks made from Kenney "Impact Sounds" impactWood (CC0),
+  muffled as if through a door, with a small room echo.
+
+sfx_transition, dialogue_blip, dialogue_blip_niri: made for Eclosion.
 title_bgm.ogg: from the team (Dawon's branch).
 sfx_catch: Kenney "Interface Sounds" glass_001 (CC0), one octave lower and softer.
 
 Music
 music_floor1_echoes_of_the_past.wav: "Echoes of the Past" by isaiah658, CC0
   https://opengameart.org/content/echoes-of-the-past
+music_floor1_night.wav: made for this game from "Echoes of the Past" (above): slower and lower,
+  wavering pitch, muffled, big room echo, plus a low drone; 22050 Hz
 music_minigame1_ps2_ambient.mp3: "PS2 horror / mystery ambient theme" by Tarush Singhal, CC0
   https://opengameart.org/content/ps2-horror-mystery-ambient-theme

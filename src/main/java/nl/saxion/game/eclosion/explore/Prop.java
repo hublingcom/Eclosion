@@ -11,6 +11,7 @@ class Prop {
     final String texture;
     final Rectangle area;   // where it is drawn (world), exactly over the same spot in the picture
     final float baseY;      // world y of its front edge: characters above this line are behind it
+    boolean visible = true; // a place can hide it (e.g. the empty bed while Ageha sleeps in it)
 
     Prop(String texture, Rectangle area, float baseY) {
         this.texture = texture;

@@ -96,6 +96,22 @@ public class RoomLight {
         return out;
     }
 
+    /**
+     * How much lamp light reaches this spot, 0 (none) .. 1 (right at a lamp).
+     * reach makes the lamps reach further (used for the light pools at night).
+     */
+    public float glowAt(float x, float y, float reach) {
+        float glow = 0;
+        for (PointLight light : lights) {
+            float dx = x - light.x, dy = y - light.y;
+            float d = (float) Math.sqrt(dx * dx + dy * dy) / (light.radius * reach);
+            if (d < 1f) {
+                glow = Math.max(glow, (1f - d) * (1f - d));
+            }
+        }
+        return glow;
+    }
+
     /** How dark the shadow under a character should be: a bit stronger where it's bright. */
     public float shadowAlpha(Color tint) {
         float brightness = (tint.r + tint.g + tint.b) / 3f;

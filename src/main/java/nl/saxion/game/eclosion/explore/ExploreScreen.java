@@ -3,18 +3,21 @@ package nl.saxion.game.eclosion.explore;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Rectangle;
-import java.util.ArrayList;
-import java.util.List;
-import nl.saxion.gameapp.GameApp;
-import nl.saxion.gameapp.screens.ScalableGameScreen;
 import nl.saxion.game.eclosion.audio.Bgm;
+import nl.saxion.game.eclosion.audio.Sfx;
 import nl.saxion.game.eclosion.ui.ClickEffect;
 import nl.saxion.game.eclosion.ui.DialogueBox;
 import nl.saxion.game.eclosion.ui.DialogueLine;
 import nl.saxion.game.eclosion.ui.PauseMenu;
 import nl.saxion.game.eclosion.ui.ScreenFader;
-import nl.saxion.game.eclosion.audio.Sfx;
+import nl.saxion.gameapp.GameApp;
+import nl.saxion.gameapp.screens.ScalableGameScreen;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Base class for every place Ageha can walk around in (his room, the corridor, ...).
@@ -43,8 +46,8 @@ public abstract class ExploreScreen extends ScalableGameScreen {
     protected float agehaH = 110;                            // height on screen (a place can change it to fit its furniture)
     private static final float NORMAL_H = 110;               // the size the speeds below are made for
     private static final float SPEED = 240;                  // world units per second (at NORMAL_H)
-    private static final float ACCELERATION = 14;            // how fast he gets up to speed (higher = snappier)
-    private static final float DECELERATION = 18;            // how fast he stops
+    private static final float ACCELERATION = 10;            // how fast he gets up to speed (higher = snappier)
+    private static final float DECELERATION = 13;            // how fast he stops
     private static final float ARRIVE_DISTANCE = 40;         // click-walk: starts slowing down this close to the spot
     private static final float STEP_LENGTH = 24;             // distance walked per animation frame
     private static final float BOB = 1.5f;                   // tiny up/down movement while walking
@@ -57,6 +60,8 @@ public abstract class ExploreScreen extends ScalableGameScreen {
     private boolean walking = false;
     private float walkDistance = 0;                          // distance walked since he started moving
     private int lastStepIndex = -1;                          // for the footstep sounds
+    /** True while Ageha is not drawn (e.g. he is asleep and drawn as part of the bed). */
+    protected boolean agehaHidden = false;
 
     // ---------- light ----------
     protected RoomLight light;
@@ -113,6 +118,12 @@ public abstract class ExploreScreen extends ScalableGameScreen {
     private static final float MUSIC_VOLUME = 0.3f;          // floor theme volume
     private final PauseMenu pauseMenu = new PauseMenu();
 
+    // ---------- night (see TimeOfDay) ----------
+    private static final float NIGHT_DARKNESS = 0.70f;       // 0 = like the day, 1 = all black
+    private static final float NIGHT_LAMP_REACH = 1.8f;      // lamps light up a bigger pool than by day
+    private static final int NIGHT_CELL = 4;                 // world units per pixel of the night shade
+    private Texture nightShade;                              // made the first time it is needed in this place
+
     // ---------- setting up ----------
     protected ExploreScreen(String textureName, String imagePath, float imgW, float imgH) {
         super(1280, 720);
@@ -157,8 +168,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         if (!built) {
             buildRoom();
             outline = new RoomOutline(imagePath);   // where clicks are ignored (the black around the room)
-            walkGrid = new WalkGrid((mx, my) -> canStandAt(mx - agehaW() / 2, my - 7),
-                    WORLD_W, roomY, imgH * scale);    // for finding a way around furniture when clicking
+            walkGrid = makeWalkGrid();                // for finding a way around furniture when clicking
             built = true;
         }
         for (Npc npc : npcs) {
@@ -188,14 +198,16 @@ public abstract class ExploreScreen extends ScalableGameScreen {
     protected void addLights() {
     }
 
-    // ---------- hooks for special things (like the safe keypad) ----------
+    // ---------- hooks a place can override ----------
     protected boolean overlayOpen() { return false; }
     protected void updateOverlay(float delta) { }
     protected void renderOverlay() { }
     /** Called once when a text in the dialogue box has finished. */
     protected void onTextFinished() { }
+    /** Every frame (not while paused): for characters that move on their own while the player walks. */
+    protected void updateRoom(float delta) { }
 
-    // ---------- making the room ----------
+    // ---------- making the room: things to look at, doors, ways out, furniture ----------
     /** Looking at things is Ageha's inner voice: no name, no portrait. */
     protected DialogueLine[] lines(String... texts) {
         DialogueLine[] result = new DialogueLine[texts.length];
@@ -205,12 +217,14 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         return result;
     }
 
+    /** Something to look at with E: one text the first time, another one after that. */
     protected Interactable addItem(String name, Rectangle area, DialogueLine[] firstTime, DialogueLine[] again) {
         Interactable item = new Interactable(name, area, firstTime, again, null);
         items.add(item);
         return item;
     }
 
+    /** Something that does its own thing when Ageha presses E at it (a keypad, a cutscene, ...). */
     protected Interactable addSpecial(String name, Rectangle area, Runnable action) {
         Interactable item = new Interactable(name, area, null, null, action);
         items.add(item);
@@ -219,66 +233,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
 
     /** A door: E fades to black and goes to the other screen. */
     protected void addDoor(String name, Rectangle area, String targetScreen) {
-        addSpecial(name, area, () -> {
-            throughDoor = true;             // door opening now, door closing in the next place
-            goTo(targetScreen);
-        });
-    }
-
-    /**
-     * Puts another character in the room with the middle of their feet at this image pixel.
-     * frameW/frameH = size of their sprite frames, figureH = how tall the character is inside a frame.
-     */
-    protected Npc addNpc(String spritePrefix, float frameW, float frameH, float figureH,
-                         float ix, float iy, String facingDirection) {
-        Npc npc = new Npc(spritePrefix, frameW, frameH, figureH, 1f);
-        Rectangle spot = imageRect(ix, iy, 0, 0);
-        npc.x = spot.x - npcW(npc) / 2;
-        npc.y = spot.y;
-        npc.facing = facingDirection;
-        npcs.add(npc);
-        // can't walk through them: their feet AND the lower part of their body block,
-        // so Ageha can't stand right "on" them either
-        solids.add(npcBlock(npc));
-        return npc;
-    }
-
-    /** The part of a character Ageha can't walk into. */
-    private Rectangle npcBlock(Npc npc) {
-        return new Rectangle(npc.x + npcW(npc) * 0.25f, npc.y, npcW(npc) * 0.5f, npcH(npc) * 0.22f);
-    }
-
-    /**
-     * Ageha walks up to this character (to the side he is on), then they turn to each other
-     * and the conversation starts. Arrow keys / a click on the way cancel it.
-     */
-    protected void walkUpTo(Npc npc, Runnable conversation) {
-        Rectangle block = npcBlock(npc);
-        float gap = 6;
-        float npcCenterX = block.x + block.width / 2;
-        float dx = (x + agehaW() / 2) - npcCenterX;
-        float dy = (y + 7) - (block.y + block.height / 2);
-        if (Math.abs(dx) > Math.abs(dy)) {
-            // stand beside them, far enough that the two sprites don't overlap
-            float apart = npcW(npc) * 0.36f + agehaW() * 0.36f;
-            targetX = dx < 0 ? npcCenterX - apart : npcCenterX + apart;
-            targetY = npc.y + 7;
-        } else {
-            // stand in front of them (below) or behind them (above)
-            targetX = npcCenterX;
-            targetY = dy < 0 ? block.y - gap - 7 : block.y + block.height + gap + 7;
-        }
-        headTo(targetX, targetY);                  // walks around furniture on the way
-        talkTo = npc;
-        startTalk = conversation;
-    }
-
-    /**
-     * Furniture that can cover Ageha. (ix, iy, iw, ih) = where the cut-out picture sits in the room
-     * picture, baseIy = image y of the furniture's front edge on the floor.
-     */
-    protected void addProp(String texture, float ix, float iy, float iw, float ih, float baseIy) {
-        props.add(new Prop(texture, imageRect(ix, iy, iw, ih), imageRect(0, baseIy, 0, 0).y));
+        addSpecial(name, area, () -> goThroughDoor(targetScreen));
     }
 
     /** Walking into this area (world units) fades to black and goes to the other screen. */
@@ -294,9 +249,33 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         exits.add(new Exit(zone, null, notYet));
     }
 
-    /** For screens that are not rooms (minigames): say where Ageha comes back from. */
-    public static void comeBackFrom(String screenName) {
-        arrivedFrom = screenName;
+    /**
+     * Furniture that can cover Ageha. (ix, iy, iw, ih) = where the cut-out picture sits in the room
+     * picture, baseIy = image y of the furniture's front edge on the floor.
+     */
+    protected void addProp(String texture, float ix, float iy, float iw, float ih, float baseIy) {
+        props.add(new Prop(texture, imageRect(ix, iy, iw, ih), imageRect(0, baseIy, 0, 0).y));
+    }
+
+    /** Shows or hides a prop made with addProp (by its texture name). */
+    protected void setPropVisible(String texture, boolean visible) {
+        for (Prop prop : props) {
+            if (prop.texture.equals(texture)) {
+                prop.visible = visible;
+            }
+        }
+    }
+
+    /** The music of this place. Floor 1 (the corridor, the main hall) has one theme, and a darker one at night. */
+    protected String music() {
+        return TimeOfDay.isNight() ? Bgm.FLOOR1_NIGHT : Bgm.FLOOR1;
+    }
+
+    // ---------- going to another place ----------
+    /** Opens a door and goes through it (door sound now, closing sound in the next place). */
+    protected void goThroughDoor(String targetScreen) {
+        throughDoor = true;
+        goTo(targetScreen);
     }
 
     /** Fades to black and switches to that screen (with a door or transition sound). */
@@ -311,20 +290,12 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         }
     }
 
-    /** The music of this place. Floor 1 (his room, the corridor, the main hall) has one theme. */
-    protected String music() {
-        return Bgm.FLOOR1;
+    /** For screens that are not rooms (minigames, the title screen): say where Ageha comes back from. */
+    public static void comeBackFrom(String screenName) {
+        arrivedFrom = screenName;
     }
 
-    /** Put Ageha right next to a character (on their right), looking at them, like after walkUpTo. */
-    protected void placeBeside(Npc npc) {
-        Rectangle block = npcBlock(npc);
-        float apart = npcW(npc) * 0.36f + agehaW() * 0.36f;
-        x = block.x + block.width / 2 + apart - agehaW() / 2;
-        y = npc.y;
-        facing = "left";
-    }
-
+    // ---------- placing Ageha ----------
     /** Puts Ageha so that the middle of his feet is at this image pixel. */
     protected void placeFeetAtImage(float ix, float iy, String facingDirection) {
         Rectangle spot = imageRect(ix, iy, 0, 0);
@@ -333,12 +304,213 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         facing = facingDirection;
     }
 
+    /** For cutscenes that move Ageha themselves: show his walk frames for this distance walked so far. */
+    protected void showAgehaWalking(float distanceSoFar) {
+        walking = true;
+        walkDistance = distanceSoFar;
+    }
+
+    // ---------- other characters ----------
+    /** Niri, the guide: his walk sprites and his height compared to Ageha (a bit shorter). */
+    protected static final String NIRI_SPRITES = "niri_walk";
+    protected static final float NIRI_HEIGHT = 0.90f;
+
+    /**
+     * Puts another character in the room with the middle of their feet at this image pixel.
+     * frameW/frameH = size of their sprite frames, figureH = how tall the character is inside a frame.
+     * Ageha can't walk through them.
+     */
+    protected Npc addNpc(String spritePrefix, float frameW, float frameH, float figureH,
+                         float ix, float iy, String facingDirection) {
+        Npc npc = new Npc(spritePrefix, frameW, frameH, figureH, 1f);
+        Rectangle spot = imageRect(ix, iy, 0, 0);
+        npc.x = spot.x - npcW(npc) / 2;
+        npc.y = spot.y;
+        npc.facing = facingDirection;
+        npcs.add(npc);
+        blockNpc(npc);
+        return npc;
+    }
+
+    /**
+     * A character that comes and goes: starts hidden (show it with showNpcAtImage), doesn't block
+     * Ageha, walks with moveNpcToward. relativeHeight: 1 = as tall as Ageha.
+     */
+    protected Npc addMovingNpc(String spritePrefix, float frameW, float frameH, float figureH, float relativeHeight) {
+        Npc npc = new Npc(spritePrefix, frameW, frameH, figureH, relativeHeight);
+        npc.facing = "down";
+        npc.visible = false;
+        npcs.add(npc);
+        return npc;
+    }
+
+    /** Adds Niri as a moving character (see addMovingNpc). */
+    protected Npc addNiri() {
+        return addMovingNpc(NIRI_SPRITES, 322, 408, 392, NIRI_HEIGHT);
+    }
+
+    /** Shows a character with the middle of its feet at this image pixel. */
+    protected void showNpcAtImage(Npc npc, float ix, float iy, String facingDirection) {
+        Rectangle spot = imageRect(ix, iy, 0, 0);
+        npc.x = spot.x - npcW(npc) / 2;
+        npc.y = spot.y;
+        npc.facing = facingDirection;
+        npc.visible = true;
+        npc.alpha = 1;
+        npc.fadeTo = 1;
+    }
+
+    protected void hideNpc(Npc npc) {
+        npc.visible = false;
+    }
+
+    /**
+     * Ageha can't walk through this character: their feet AND the lower part of their body block,
+     * so he can't stand right "on" them either. (For one that stands still in the room.)
+     */
+    protected void blockNpc(Npc npc) {
+        if (npc.block != null) {
+            return;
+        }
+        npc.block = npcBlock(npc);
+        solids.add(npc.block);
+        walkGridChanged();
+    }
+
+    /** Ageha can walk through this character again (for one that has left). */
+    protected void unblockNpc(Npc npc) {
+        if (npc.block == null) {
+            return;
+        }
+        solids.remove(npc.block);
+        npc.block = null;
+        walkGridChanged();
+    }
+
+    /** The part of a character Ageha can't walk into. */
+    private Rectangle npcBlock(Npc npc) {
+        return new Rectangle(npc.x + npcW(npc) * 0.25f, npc.y, npcW(npc) * 0.5f, npcH(npc) * 0.22f);
+    }
+
+    /** The character slowly appears (from invisible). */
+    protected void fadeNpcIn(Npc npc) {
+        npc.alpha = 0;
+        npc.fadeTo = 1;
+    }
+
+    /** The character slowly disappears (call hideNpc when it is gone). */
+    protected void fadeNpcOut(Npc npc) {
+        npc.fadeTo = 0;
+    }
+
+    /** True once a character that is fading out can't be seen any more. */
+    protected boolean npcFadedOut(Npc npc) {
+        return npc.alpha <= 0;
+    }
+
+    /**
+     * Moves a character a bit toward this image pixel (middle of its feet), speed in world units
+     * per second. Call it every frame; returns true once it is there.
+     */
+    protected boolean moveNpcToward(Npc npc, float ix, float iy, float speed, float delta) {
+        Rectangle spot = imageRect(ix, iy, 0, 0);
+        return moveNpcTowardWorld(npc, spot.x, spot.y, speed, delta);
+    }
+
+    /** Like moveNpcToward, but the spot (middle of the feet) is in world units. */
+    protected boolean moveNpcTowardWorld(Npc npc, float wx, float wy, float speed, float delta) {
+        float tx = wx - npcW(npc) / 2, ty = wy;
+        float dx = tx - npc.x, dy = ty - npc.y;
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        if (distance < 1.5f) {
+            stopNpcAt(npc, tx, ty);
+            return true;
+        }
+        // glide: speed up softly at the start and slow down softly near the spot
+        float wanted = speed * Math.min(1, distance / (speed * 0.5f));
+        float targetVx = dx / distance * wanted, targetVy = dy / distance * wanted;
+        float smooth = Math.min(1, delta * 4);
+        npc.vx += (targetVx - npc.vx) * smooth;
+        npc.vy += (targetVy - npc.vy) * smooth;
+        float step = (float) Math.sqrt(npc.vx * npc.vx + npc.vy * npc.vy) * delta;
+        if (step >= distance) {
+            stopNpcAt(npc, tx, ty);
+            return true;
+        }
+        npc.x += npc.vx * delta;
+        npc.y += npc.vy * delta;
+        npc.moving = true;
+        npc.walkDistance += step;
+        // look where they are going
+        if (Math.abs(npc.vx) > Math.abs(npc.vy)) {
+            npc.facing = npc.vx > 0 ? "right" : "left";
+        } else {
+            npc.facing = npc.vy > 0 ? "up" : "down";
+        }
+        return false;
+    }
+
+    /** The character has arrived: standing still at (tx, ty), bottom-left of the sprite. */
+    private void stopNpcAt(Npc npc, float tx, float ty) {
+        npc.x = tx;
+        npc.y = ty;
+        npc.vx = 0;
+        npc.vy = 0;
+        npc.moving = false;
+        npc.walkDistance = 0;
+    }
+
+    /**
+     * Ageha walks up to this character (to the side he is on), then they turn to each other
+     * and the conversation starts. If someone else already stands at that side, he walks to
+     * the front of the character instead. Arrow keys / a click on the way cancel it.
+     */
+    protected void walkUpTo(Npc npc, Runnable conversation) {
+        Rectangle block = npcBlock(npc);
+        float gap = 6;
+        float npcCenterX = block.x + block.width / 2;
+        float dx = (x + agehaW() / 2) - npcCenterX;
+        float dy = (y + 7) - (block.y + block.height / 2);
+        float apart = npcW(npc) * 0.36f + agehaW() * 0.36f;   // far enough that the two sprites don't overlap
+        float sideX = dx < 0 ? npcCenterX - apart : npcCenterX + apart;
+        if (Math.abs(dx) > Math.abs(dy) && !spotTaken(sideX, npc.y, npc)) {
+            targetX = sideX;                                     // stand beside them
+            targetY = npc.y + 7;
+        } else {
+            // stand in front of them (below), or behind them (above) when he comes from behind
+            boolean front = dy < 0 || Math.abs(dx) > Math.abs(dy);
+            targetX = npcCenterX;
+            targetY = front ? block.y - gap - 7 : block.y + block.height + gap + 7;
+        }
+        headTo(targetX, targetY);                  // walks around furniture on the way
+        talkTo = npc;
+        startTalk = conversation;
+    }
+
+    /** True when another visible character stands about here (middle of the feet), so Ageha would overlap them. */
+    private boolean spotTaken(float feetX, float feetY, Npc except) {
+        for (Npc other : npcs) {
+            if (other == except || !other.visible) {
+                continue;
+            }
+            float otherX = other.x + npcW(other) / 2;
+            float minApart = npcW(other) * 0.36f + agehaW() * 0.36f;
+            if (Math.abs(feetX - otherX) < minApart && Math.abs(feetY - other.y) < 30) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ---------- every frame ----------
     @Override
     public void render(float delta) {
         super.render(delta);
         fader.update(delta);
         Bgm.update(delta);
+        if (!pauseMenu.isOpen()) {
+            updateRoom(delta);              // things that move by themselves (the player can still walk)
+        }
 
         if (fader.busy()) {
             stopWalking();                  // no walking or looking while the screen fades
@@ -410,18 +582,27 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         GameApp.startSpriteRendering();
         GameApp.drawTexture(textureName, 0, roomY, imgW * scale, imgH * scale);
         GameApp.endSpriteRendering();
-        drawShadow(x + agehaW() / 2, y, agehaW(), agehaTint);
+        if (!agehaHidden) {
+            drawShadow(x + agehaW() / 2, y, agehaW(), agehaTint);
+        }
         for (Npc npc : npcs) {
-            drawShadow(npc.x + npcW(npc) / 2, npc.y, npcW(npc), npc.tint);
+            if (npc.visible && npc.alpha > 0.5f) {       // no shadow while fading in or out
+                drawShadow(npc.x + npcW(npc) / 2, npc.y, npcW(npc), npc.tint);
+            }
         }
         // Characters and furniture further back (higher up on screen) are drawn first,
         // so whatever stands in front covers them.
         List<Layer> layers = new ArrayList<>();
-        layers.add(new Layer(y, this::drawAgeha));
+        if (!agehaHidden) {
+            layers.add(new Layer(y, this::drawAgeha));
+        }
         for (Npc npc : npcs) {
-            layers.add(new Layer(npc.y, () -> drawNpc(npc)));
+            if (npc.visible) {
+                layers.add(new Layer(npc.y, () -> drawNpc(npc)));
+            }
         }
         for (Prop prop : props) {
+            if (!prop.visible) continue;
             layers.add(new Layer(prop.baseY, () -> GameApp.drawTexture(prop.texture,
                     prop.area.x, prop.area.y, prop.area.width, prop.area.height)));
         }
@@ -431,6 +612,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
             layer.draw().run();
         }
         GameApp.endSpriteRendering();
+        drawNight();
 
         // No "E" hint on screen: the player has to think of pressing E themselves.
         // Only when Ageha really stands behind the box (his whole body within its width), his inner voice
@@ -486,6 +668,17 @@ public abstract class ExploreScreen extends ScalableGameScreen {
 
     // ---------- finding a way around things (see WalkGrid) ----------
     private WalkGrid walkGrid;
+
+    private WalkGrid makeWalkGrid() {
+        return new WalkGrid((mx, my) -> canStandAt(mx - agehaW() / 2, my - 7), WORLD_W, roomY, imgH * scale);
+    }
+
+    /** Something that blocks the way came or went: the walk grid has to be made again. */
+    private void walkGridChanged() {
+        if (walkGrid != null) {
+            walkGrid = makeWalkGrid();
+        }
+    }
     /** Way points still to walk to after the current target (middle of the feet). */
     private final List<float[]> path = new ArrayList<>();
     private static final float WAYPOINT_REACHED = 4;         // this close to a way point: go on to the next
@@ -587,18 +780,16 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         float stepX = vx * delta, stepY = vy * delta;
         boolean blockedX = stepX != 0 && !canStandAt(x + stepX, y);
         boolean blockedY = stepY != 0 && !canStandAt(x, y + stepY);
-        {
-            // slide along furniture instead of getting stuck (a click-walk follows a planned way,
-            // so it only brushes corners; if it really can't get on, the stuck check stops it)
-            if (blockedX) vx = 0; else x += stepX;
-            if (blockedY) vy = 0; else y += stepY;
-            // walking straight into an edge that is just a little off (the narrow stairs, a doorway):
-            // slide him sideways onto the free way
-            if (!hasTarget && dx == 0 && dy != 0 && blockedY) {
-                cornerHelp(0, dy, delta);
-            } else if (!hasTarget && dy == 0 && dx != 0 && blockedX) {
-                cornerHelp(dx, 0, delta);
-            }
+        // slide along furniture instead of getting stuck (a click-walk follows a planned way,
+        // so it only brushes corners; if it really can't get on, the stuck check stops it)
+        if (blockedX) vx = 0; else x += stepX;
+        if (blockedY) vy = 0; else y += stepY;
+        // walking straight into an edge that is just a little off (the narrow stairs, a doorway):
+        // slide him sideways onto the free way
+        if (!hasTarget && dx == 0 && dy != 0 && blockedY) {
+            cornerHelp(0, dy, delta);
+        } else if (!hasTarget && dy == 0 && dx != 0 && blockedX) {
+            cornerHelp(dx, 0, delta);
         }
 
         // 5. Legs move with the distance walked, so the feet don't slide when he speeds up or slows down
@@ -713,7 +904,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         Interactable best = null;
         float bestDistance = Float.MAX_VALUE;
         for (Interactable item : items) {
-            if (!inReach(item)) continue;
+            if (!item.enabled || !inReach(item)) continue;
             float cx = item.area.x + item.area.width / 2 - (x + agehaW() / 2);
             float cy = item.area.y + item.area.height / 2 - y;
             float distance = cx * cx + cy * cy;
@@ -739,14 +930,85 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         GameApp.disableTransparency();
     }
 
+    private static final float NPC_FADE_SPEED = 1.6f;        // fading in/out takes about 0.6 s
+
     private void drawNpc(Npc npc) {
-        light.update(npc.tint, npc.x + npcW(npc) / 2, npc.y + 4, Gdx.graphics.getDeltaTime());
-        GameApp.getSpriteBatch().setColor(npc.tint);
-        GameApp.drawTexture(npc.spritePrefix + "_" + npc.facing + "_2", Math.round(npc.x), Math.round(npc.y),
-                npcW(npc), npcH(npc));
+        float dt = Gdx.graphics.getDeltaTime();
+        light.update(npc.tint, npc.x + npcW(npc) / 2, npc.y + 4, dt);
+        if (npc.alpha < npc.fadeTo) {
+            npc.alpha = Math.min(npc.fadeTo, npc.alpha + dt * NPC_FADE_SPEED);
+        } else if (npc.alpha > npc.fadeTo) {
+            npc.alpha = Math.max(npc.fadeTo, npc.alpha - dt * NPC_FADE_SPEED);
+        }
+        GameApp.getSpriteBatch().setColor(npc.tint.r, npc.tint.g, npc.tint.b, npc.tint.a * npc.alpha);
+        // standing, or walking like Ageha: step frames and a tiny bob on each step
+        String texture = npc.spritePrefix + "_" + npc.facing + "_" + walkFrame(npc.moving, npc.walkDistance);
+        GameApp.drawTexture(texture, npc.x, npc.y + walkBob(npc.moving, npc.walkDistance), npcW(npc), npcH(npc));
         GameApp.getSpriteBatch().setColor(Color.WHITE);
     }
 
+    private void drawAgeha() {
+        light.update(agehaTint, x + agehaW() / 2, y + 4, Gdx.graphics.getDeltaTime());
+        GameApp.getSpriteBatch().setColor(agehaTint);
+        // exact (not rounded) positions: he glides smoothly instead of jumping a pixel at a time
+        GameApp.drawTexture(frameName(facing, walkFrame(walking, walkDistance)),
+                x, y + walkBob(walking, walkDistance), agehaW(), agehaH);
+        GameApp.getSpriteBatch().setColor(Color.WHITE);
+    }
+
+    /** Which walk frame to draw (1 and 3 = a step, 2 = standing), from the distance walked. */
+    private int walkFrame(boolean moving, float distance) {
+        if (!moving) {
+            return 2;
+        }
+        int steps = (int) (distance / (STEP_LENGTH * size()));
+        return WALK_CYCLE[steps % WALK_CYCLE.length];
+    }
+
+    /** How far up the sprite goes right now (a little up on each step). */
+    private float walkBob(boolean moving, float distance) {
+        if (!moving) {
+            return 0;
+        }
+        float steps = distance / (STEP_LENGTH * size());
+        return (float) Math.abs(Math.sin(steps * Math.PI / 2)) * BOB;
+    }
+
+    /** At night: a dark shade over the place, lighter in a soft pool around each lamp. */
+    private void drawNight() {
+        if (!TimeOfDay.isNight()) {
+            return;
+        }
+        if (nightShade == null) {
+            nightShade = makeNightShade();
+        }
+        GameApp.enableTransparency();
+        GameApp.startSpriteRendering();
+        GameApp.getSpriteBatch().draw(nightShade, 0, 0, getWorldWidth(), getWorldHeight());
+        GameApp.endSpriteRendering();
+        GameApp.disableTransparency();
+    }
+
+    /** A small picture of the darkness (one pixel per NIGHT_CELL world units), stretched smoothly. */
+    private Texture makeNightShade() {
+        int w = (int) (WORLD_W / NIGHT_CELL), h = (int) (WORLD_H / NIGHT_CELL);
+        Pixmap shade = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+        shade.setBlending(Pixmap.Blending.None);
+        for (int py = 0; py < h; py++) {
+            for (int px = 0; px < w; px++) {
+                float wx = (px + 0.5f) * NIGHT_CELL;
+                float wy = WORLD_H - (py + 0.5f) * NIGHT_CELL;     // pixmap rows go down, the world goes up
+                float alpha = NIGHT_DARKNESS * (1 - 0.85f * light.glowAt(wx, wy, NIGHT_LAMP_REACH));
+                shade.drawPixel(px, py, Color.rgba8888(0.01f, 0.01f, 0.03f, alpha));   // almost black, a touch of blue
+            }
+        }
+        Texture texture = new Texture(shade);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        shade.dispose();
+        return texture;
+    }
+
+    // ---------- character sizes and facing ----------
     protected float npcH(Npc npc) {
         return agehaH * npc.heightFactor;
     }
@@ -773,23 +1035,8 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         }
     }
 
-    private void drawAgeha() {
-        int frame = 2;  // standing
-        float bob = 0;
-        if (walking) {
-            float steps = walkDistance / (STEP_LENGTH * size());
-            frame = WALK_CYCLE[(int) steps % WALK_CYCLE.length];
-            bob = (float) Math.abs(Math.sin(steps * Math.PI / 2)) * BOB;   // up on each step
-        }
-        light.update(agehaTint, x + agehaW() / 2, y + 4, Gdx.graphics.getDeltaTime());
-        GameApp.getSpriteBatch().setColor(agehaTint);
-        // whole pixels: the sprite stays sharp instead of shimmering between pixels
-        GameApp.drawTexture(frameName(facing, frame), Math.round(x), Math.round(y + bob), agehaW(), agehaH);
-        GameApp.getSpriteBatch().setColor(Color.WHITE);
-    }
-
     // ---------- helpers ----------
-    private float agehaW() {
+    protected float agehaW() {
         return agehaH * 243f / 330f;
     }
 
@@ -842,5 +1089,9 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         }
         DialogueBox.disposeAssets();
         light.dispose();
+        if (nightShade != null) {
+            nightShade.dispose();
+            nightShade = null;
+        }
     }
 }

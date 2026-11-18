@@ -33,6 +33,25 @@ public final class Settings {
         }
     }
 
+    /**
+     * Was the game in fullscreen last time? Read straight from the settings file, so the game can
+     * open in fullscreen at once (before libGDX runs). Otherwise it would first flash a small
+     * black window for a moment and then jump to fullscreen.
+     */
+    public static boolean savedFullscreen() {
+        java.io.File file = new java.io.File(System.getProperty("user.home"), ".prefs/" + FILE);
+        if (!file.exists()) {
+            return false;
+        }
+        try (java.io.InputStream in = new java.io.FileInputStream(file)) {
+            java.util.Properties saved = new java.util.Properties();
+            saved.loadFromXML(in);
+            return Boolean.parseBoolean(saved.getProperty("fullscreen", "false"));
+        } catch (Exception e) {
+            return false;                // unreadable file: just start in a window
+        }
+    }
+
     /** Call after a setting changed. */
     public static void save() {
         Preferences prefs = Gdx.app.getPreferences(FILE);

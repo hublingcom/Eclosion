@@ -13,11 +13,13 @@ import com.badlogic.gdx.audio.Music;
  * The volume follows Sfx.musicVolume (settings).
  *
  * Music (see resources/audio/CREDITS.txt): title = team, floor 1 = "Echoes of the Past" (isaiah658, CC0),
+ * floor 1 at night = the same piece made slower, lower, muffled and darker for this game,
  * minigame 1 = "PS2 horror / mystery ambient theme" (Tarush Singhal, CC0).
  */
 public final class Bgm {
     public static final String TITLE = "audio/title_bgm.ogg";
     public static final String FLOOR1 = "audio/music_floor1_echoes_of_the_past.wav";
+    public static final String FLOOR1_NIGHT = "audio/music_floor1_night.wav";
     public static final String MINIGAME1 = "audio/music_minigame1_ps2_ambient.mp3";
 
     private static Music current;

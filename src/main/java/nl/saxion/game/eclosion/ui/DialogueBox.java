@@ -32,7 +32,7 @@ public class DialogueBox {
     private static final Color BOX_COLOR = new Color(8 / 255f, 8 / 255f, 10 / 255f, 0.9f);
     private static final Color LINE_COLOR = new Color(138 / 255f, 135 / 255f, 144 / 255f, 1f);
     private static final Color INNER_LINE_COLOR = new Color(60 / 255f, 58 / 255f, 66 / 255f, 1f);
-    private static final Color TEXT_COLOR = new Color(232 / 255f, 228 / 255f, 220 / 255f, 1f);
+    private static final Color TEXT_COLOR = new Color(244 / 255f, 241 / 255f, 234 / 255f, 1f);
     private static final Color NAME_COLOR = new Color(169 / 255f, 163 / 255f, 181 / 255f, 1f);
     private static final Color ARROW_COLOR = new Color(150 / 255f, 60 / 255f, 70 / 255f, 1f);
     private static final Color CHOICE_DIM = new Color(140 / 255f, 136 / 255f, 132 / 255f, 1f);   // options not selected
@@ -66,6 +66,7 @@ public class DialogueBox {
         PORTRAIT_HEIGHTS.put("ageha", 335f);   // ageha_neutral (445 x 584 bust): his head drawn as big as Bluma's
         PORTRAIT_HEIGHTS.put("hal", 430f);
         PORTRAIT_HEIGHTS.put("bluma", 380f);   // bluma_neutral etc. (388 x 585): her head is as big as Ageha's
+        PORTRAIT_HEIGHTS.put("niri", 315f);    // niri_happy etc. (383 x 388 bust, two wings): his head about as big as the others
     }
 
     /** Colour of each character's name in the box. Characters not in this list use NAME_COLOR. */
@@ -74,6 +75,7 @@ public class DialogueBox {
         NAME_COLORS.put("Ageha", new Color(176 / 255f, 128 / 255f, 92 / 255f, 1f));   // brown
         NAME_COLORS.put("Hal", new Color(165 / 255f, 42 / 255f, 62 / 255f, 1f));      // bordeaux red
         NAME_COLORS.put("Bluma", new Color(104 / 255f, 150 / 255f, 92 / 255f, 1f));   // green, like her eyes
+        NAME_COLORS.put("Niri", new Color(206 / 255f, 166 / 255f, 82 / 255f, 1f));    // golden, like his eyes
     }
 
     private static final float LETTERS_PER_SECOND = 40;
@@ -89,6 +91,14 @@ public class DialogueBox {
         VOICE_PITCH.put("Ageha", 0.95f);
         VOICE_PITCH.put("Hal", 0.78f);      // tallest, lowest voice
         VOICE_PITCH.put("Bluma", 1.18f);
+        VOICE_PITCH.put("Niri", 1.0f);      // he has his own sound (VOICE_SOUND)
+    }
+
+    /** A character with their own typing sound instead of the normal blip (resources/audio). */
+    public static final String NIRI_BLIP = "dialogue_blip_niri";
+    private static final Map<String, String> VOICE_SOUND = new HashMap<>();
+    static {
+        VOICE_SOUND.put("Niri", NIRI_BLIP);  // the same blip as the others, pitched up: young and bright
     }
 
     // ---------- double click: jump to the end ----------
@@ -120,6 +130,7 @@ public class DialogueBox {
         GameApp.addFont(TEXT_FONT, PixelFont.make(24));
         GameApp.addFont(NAME_FONT, PixelFont.make(24));
         GameApp.addSound(BLIP_SOUND, "audio/dialogue_blip.wav");
+        GameApp.addSound(NIRI_BLIP, "audio/dialogue_blip_niri.wav");
     }
 
 
@@ -127,6 +138,7 @@ public class DialogueBox {
         GameApp.disposeFont(TEXT_FONT);
         GameApp.disposeFont(NAME_FONT);
         GameApp.disposeSound(BLIP_SOUND);
+        GameApp.disposeSound(NIRI_BLIP);
     }
 
     /** Put a portrait on a side before the dialogue starts (null = empty). */
@@ -254,7 +266,8 @@ public class DialogueBox {
                     volume *= 0.8f;
                 }
                 pitch *= 0.97f + (float) Math.random() * 0.06f;   // tiny variation so it doesn't sound robotic
-                GameApp.getSound(BLIP_SOUND).play(volume * Sfx.volume, pitch, 0f);   // settings volume too
+                String sound = innerVoice ? BLIP_SOUND : VOICE_SOUND.getOrDefault(part.speaker, BLIP_SOUND);
+                GameApp.getSound(sound).play(volume * Sfx.volume, pitch, 0f);   // settings volume too
                 return;
             }
             letter -= part.text.length();
@@ -317,6 +330,12 @@ public class DialogueBox {
                 rightPortrait = part.portrait;
             }
         }
+    }
+
+    /** The pixel font drawn twice, one pixel apart: thicker letters that are easier to read. */
+    private static void drawBold(com.badlogic.gdx.graphics.g2d.BitmapFont font, String text, float x, float y) {
+        font.draw(GameApp.getSpriteBatch(), text, x, y);
+        font.draw(GameApp.getSpriteBatch(), text, x + 1, y);
     }
 
     public void render(float worldWidth) {
@@ -413,7 +432,7 @@ public class DialogueBox {
             }
             if (hasName(part)) {
                 nameFont.setColor(NAME_COLORS.getOrDefault(part.speaker, NAME_COLOR));
-                nameFont.draw(GameApp.getSpriteBatch(), part.speaker + ":", textX, y);
+                drawBold(nameFont, part.speaker + ":", textX, y);
                 y -= nameStep;
             }
 
@@ -423,7 +442,7 @@ public class DialogueBox {
                 if (partLeft <= 0) {
                     break;
                 }
-                textFont.draw(GameApp.getSpriteBatch(), row.substring(0, Math.min(row.length(), partLeft)), textX, y);
+                drawBold(textFont, row.substring(0, Math.min(row.length(), partLeft)), textX, y);
                 partLeft -= row.length() + 1; // +1 for the space that was removed when wrapping
                 y -= rowStep;
             }
@@ -438,7 +457,7 @@ public class DialogueBox {
             float optionX = textX + 26;
             for (int i = 0; i < choices.size(); i++) {
                 textFont.setColor(i == selected ? TEXT_COLOR : CHOICE_DIM);
-                textFont.draw(GameApp.getSpriteBatch(), choices.get(i), optionX, y);
+                drawBold(textFont, choices.get(i), optionX, y);
                 float top = y + 4;
                 choiceAreas.add(new Rectangle(textX, top - rowStep, textWidth, rowStep));
                 if (i == selected) {

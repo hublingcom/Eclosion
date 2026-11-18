@@ -15,6 +15,8 @@ public class Interactable {
     final DialogueLine[] again;
     final Runnable action;
     boolean seen = false;
+    /** False = E does nothing here for now (e.g. a character who has left). */
+    public boolean enabled = true;
 
     Interactable(String name, Rectangle area, DialogueLine[] firstTime, DialogueLine[] again, Runnable action) {
         this.name = name;

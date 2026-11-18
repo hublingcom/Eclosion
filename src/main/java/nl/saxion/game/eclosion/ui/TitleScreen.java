@@ -3,6 +3,7 @@ package nl.saxion.game.eclosion.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.math.Rectangle;
@@ -10,10 +11,11 @@ import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 import nl.saxion.game.eclosion.audio.Bgm;
 import nl.saxion.game.eclosion.audio.Sfx;
+import nl.saxion.game.Main;
 import nl.saxion.game.eclosion.explore.ExploreScreen;
 
 /**
- * The first screen: black, the game title in big letters, music.
+ * The first screen: the title picture (night sky, "Eclosion" with the butterfly), music.
  *
  *   1. "Press any key" (any key or a click)
  *   2. the menu: New Game / Continue / Settings / Exit
@@ -24,15 +26,11 @@ import nl.saxion.game.eclosion.explore.ExploreScreen;
  *
  * Controls: Up/Down or W/S, Enter/Space/E to choose, Left/Right or A/D to change a setting,
  * Esc = back. The mouse works too (point and click).
- * No background picture for now.
+ * The menu is drawn in the empty black part under the title.
  */
 public class TitleScreen extends ScalableGameScreen {
-    /**
-     * The game title "Eclosion", written in Shippori Mincho (SIL Open Font License), saved as a picture
-     * (textures/ui/title_eclosion.png, drawn at 2x size so it stays sharp).
-     */
-    private static final String TITLE_IMAGE = "title_eclosion";
-    private static final float TITLE_SCALE = 0.5f;
+    /** The whole title screen picture (textures/ui/title_screen.png, 1920 x 1080, drawn over the whole screen). */
+    private static final String TITLE_IMAGE = "title_screen";
     private static final String MENU_FONT = "title_menu_font";
     private static final String HINT_FONT = "title_hint_font";
     private static final float MUSIC_BASE = 0.5f;            // the title music at full settings volume
@@ -41,7 +39,7 @@ public class TitleScreen extends ScalableGameScreen {
     private static final Color SELECTED = new Color(232 / 255f, 228 / 255f, 220 / 255f, 1f);
     private static final Color NORMAL = new Color(140 / 255f, 136 / 255f, 132 / 255f, 1f);
     private static final Color DISABLED = new Color(64 / 255f, 61 / 255f, 66 / 255f, 1f);
-    private static final Color MARKER = new Color(150 / 255f, 60 / 255f, 70 / 255f, 1f);         // same red as the dialogue choices
+    private static final Color MARKER = new Color(150 / 255f, 60 / 255f, 70 / 255f, 1f);   // red, like the dialogue choices
 
     private static final String[] MENU = {"New Game", "Continue", "Settings", "Exit"};
     private static final boolean[] MENU_ENABLED = {true, false, true, true};   // Continue: no saving yet
@@ -66,6 +64,8 @@ public class TitleScreen extends ScalableGameScreen {
     @Override
     public void show() {
         GameApp.addTexture(TITLE_IMAGE, "textures/ui/" + TITLE_IMAGE + ".png");
+        // drawn smaller than it is (1920 -> 1280): smooth, so the thin lines of the letters stay clean
+        GameApp.getTexture(TITLE_IMAGE).setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         GameApp.addFont(MENU_FONT, PixelFont.make(30));
         GameApp.addFont(HINT_FONT, PixelFont.make(24));
         Sfx.load();
@@ -168,6 +168,7 @@ public class TitleScreen extends ScalableGameScreen {
         switch (line) {
             case 0 -> {                                    // New Game
                 ExploreScreen.comeBackFrom(null);          // a new game starts in his bed, not at a door
+                Main.addStoryScreens();                    // fresh rooms: everything from the beginning again
                 Sfx.play(Sfx.CONFIRM);
                 Sfx.play(Sfx.TRANSITION);
                 starting = true;
@@ -232,10 +233,8 @@ public class TitleScreen extends ScalableGameScreen {
         float centerX = getWorldWidth() / 2;
         float middleY = getWorldHeight() / 2;
 
-        // the title, a little above the middle
-        float titleW = GameApp.getTextureWidth(TITLE_IMAGE) * TITLE_SCALE;
-        float titleH = GameApp.getTextureHeight(TITLE_IMAGE) * TITLE_SCALE;
-        GameApp.drawTexture(TITLE_IMAGE, Math.round(centerX - titleW / 2), Math.round(middleY + 130 - titleH / 2), titleW, titleH);
+        // the title picture over the whole screen (the title is in its upper half)
+        GameApp.drawTexture(TITLE_IMAGE, 0, 0, getWorldWidth(), getWorldHeight());
 
         if (page == Page.PRESS_KEY) {
             float pulse = 0.35f + 0.45f * (0.5f + 0.5f * (float) Math.sin(time * 2.2f));   // slowly breathes

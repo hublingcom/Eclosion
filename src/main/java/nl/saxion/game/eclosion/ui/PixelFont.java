@@ -24,6 +24,7 @@ public final class PixelFont {
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
         parameter.size = size;
         parameter.mono = true;
+        parameter.hinting = FreeTypeFontGenerator.Hinting.None;   // keeps the dot of the i apart from its stem
         parameter.color = Color.WHITE;
         parameter.minFilter = Texture.TextureFilter.Nearest;
         parameter.magFilter = Texture.TextureFilter.Nearest;

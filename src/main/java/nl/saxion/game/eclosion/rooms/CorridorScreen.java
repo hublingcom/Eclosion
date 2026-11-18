@@ -12,7 +12,9 @@ public class CorridorScreen extends ExploreScreen {
 
     public CorridorScreen() {
         super("corridor", "textures/rooms/corridor.png", 1670, 941);
-        agehaH = 82;   // the doors here are about 96 high: Ageha must be a bit shorter than a door
+        // Sizes are matched between the places: the corridor doors (100 high on screen) are the yardstick,
+        // Ageha is about 84% of a door. Room and hall are scaled from things drawn in both pictures.
+        agehaH = 84;
     }
 
     @Override

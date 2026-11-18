@@ -14,7 +14,8 @@ import nl.saxion.gameapp.GameApp;
  *
  * Where the files come from (see resources/audio/CREDITS.txt): steps, doors, E, menu and keypad
  * sounds are from Kenney's CC0 packs "RPG Audio" and "Interface Sounds", made softer and muffled
- * for the atmosphere; sfx_transition and the dialogue blip are made for this game.
+ * for the atmosphere; the knocks are made from Kenney's "Impact Sounds";
+ * sfx_transition and the dialogue blips are made for this game.
  */
 public final class Sfx {
     private static final String[] STEPS = {"sfx_step_1", "sfx_step_2", "sfx_step_3", "sfx_step_4"};          // carpet
@@ -28,6 +29,9 @@ public final class Sfx {
     public static final String KEY = "sfx_key";               // keypad button
     public static final String KEY_WRONG = "sfx_key_wrong";
     public static final String KEY_RIGHT = "sfx_key_right";
+    public static final String KNOCK = "sfx_knock";           // three knocks on a door
+    public static final String KNOCK_FAST = "sfx_knock_fast"; // three quicker, lighter knocks
+    public static final String KNOCK_HARD = "sfx_knock_hard";     // one hard, heavy hit ("Forget ###")
 
     /** 0..1, for every sound effect (settings). */
     public static float volume = 1f;
@@ -50,7 +54,8 @@ public final class Sfx {
         for (String step : STAIR_STEPS) {
             GameApp.addSound(step, "audio/" + step + ".wav");
         }
-        for (String name : new String[]{DOOR_OPEN, DOOR_CLOSE, EXAMINE, MOVE, CONFIRM, TRANSITION, KEY, KEY_WRONG, KEY_RIGHT}) {
+        for (String name : new String[]{DOOR_OPEN, DOOR_CLOSE, EXAMINE, MOVE, CONFIRM, TRANSITION, KEY, KEY_WRONG, KEY_RIGHT,
+                KNOCK, KNOCK_FAST, KNOCK_HARD}) {
             GameApp.addSound(name, "audio/" + name + ".wav");
         }
         loaded = true;
@@ -71,6 +76,11 @@ public final class Sfx {
                 return 0.4f;
             case TRANSITION:
                 return 0.35f;
+            case KNOCK:
+            case KNOCK_FAST:
+                return 0.7f;
+            case KNOCK_HARD:
+                return 0.85f;
             default:
                 return 0.45f;
         }

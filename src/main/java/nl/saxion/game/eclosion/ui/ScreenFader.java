@@ -10,9 +10,9 @@ import nl.saxion.gameapp.GameApp;
  * While busy() is true the player shouldn't be able to walk or interact.
  */
 public class ScreenFader {
-    public float fadeOutTime = 0.45f;   // seconds to go black
-    public float blackTime = 0.30f;     // seconds fully black (before switching screen / before showing)
-    public float fadeInTime = 0.60f;    // seconds to come back
+    public float fadeOutTime = 0.60f;   // seconds to go black
+    public float blackTime = 0.20f;     // seconds fully black (before switching screen / before showing)
+    public float fadeInTime = 0.75f;    // seconds to come back
 
     private enum State { NONE, OUT, BLACK_OUT, BLACK_IN, IN }
     private State state = State.NONE;
@@ -43,7 +43,8 @@ public class ScreenFader {
         timer += delta;
         switch (state) {
             case OUT -> {
-                alpha = Math.min(1f, timer / fadeOutTime);
+                float t = Math.min(1f, timer / fadeOutTime);
+                alpha = t * t * (3 - 2 * t);    // smooth start and end
                 if (timer >= fadeOutTime) { state = State.BLACK_OUT; timer = 0; }
             }
             case BLACK_OUT -> alpha = 1;    // stays black until the screen is switched
