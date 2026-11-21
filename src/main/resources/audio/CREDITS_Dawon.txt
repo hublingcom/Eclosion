@@ -1,2 +1,2 @@
 Sounds made for Eclosion by Dawon:
-sfx_tick.wav, sfx_clock_tick_fast.wav, sfx_clock_ding.wav (the clock while the night passes, NightClock)
+sfx_tick.wav, sfx_clock_tick_fast.wav, sfx_clock_ding.wav, sfx_clock_chime.wav (the clock while the night passes, NightClock; the chime = deep grandfather-clock strike at 06:00)

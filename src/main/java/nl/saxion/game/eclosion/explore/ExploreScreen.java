@@ -12,6 +12,7 @@ import nl.saxion.game.eclosion.ui.ClickEffect;
 import nl.saxion.game.eclosion.ui.CollectionMenu;
 import nl.saxion.game.eclosion.ui.DialogueBox;
 import nl.saxion.game.eclosion.ui.DialogueLine;
+import nl.saxion.game.eclosion.ui.Hud;
 import nl.saxion.game.eclosion.ui.PauseMenu;
 import nl.saxion.game.eclosion.ui.ScreenFader;
 import nl.saxion.gameapp.GameApp;
@@ -156,6 +157,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
             GameApp.addTexture(portrait, "textures/portraits/" + portrait + ".png");
         }
         DialogueBox.loadAssets();
+        Hud.loadAssets();              // day + "[I] Collection" (Dawon)
         Sfx.load();
         if (music() != null) {
             Bgm.play(music(), MUSIC_VOLUME);   // the same music keeps going from room to room
@@ -630,6 +632,10 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         float agehaMiddle = x + agehaW() / 2;
         dialogue.setAtTop(y < DialogueBox.BOX_BOTTOM + DialogueBox.BOX_HEIGHT
                 && agehaMiddle > boxLeft && agehaMiddle < boxRight);
+        // the day (top left) and "[I] Collection" (bottom right), hidden while anything else is on screen
+        boolean hudVisible = !dialogue.isActive() && !overlayOpen() && !collection.isOpen()
+                && !pauseMenu.isOpen() && !agehaHidden && !fader.busy();
+        Hud.render(delta, getWorldWidth(), getWorldHeight(), hudVisible);
         dialogue.render(getWorldWidth(), getWorldHeight());
         renderOverlay();
         collection.render(getWorldWidth(), getWorldHeight());
@@ -1097,6 +1103,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
             GameApp.disposeTexture(prop.texture);
         }
         DialogueBox.disposeAssets();
+        Hud.disposeAssets();
         light.dispose();
         if (nightShade != null) {
             nightShade.dispose();
