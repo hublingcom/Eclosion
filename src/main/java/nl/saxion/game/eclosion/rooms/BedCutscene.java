@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import nl.saxion.game.eclosion.audio.Sfx;
 import nl.saxion.game.eclosion.ui.DialogueBox;
+import nl.saxion.game.eclosion.ui.NightClock;
 import nl.saxion.game.eclosion.ui.ScreenFader;
 import nl.saxion.gameapp.GameApp;
 
@@ -184,7 +185,7 @@ class BedCutscene {
             picture(HALF_OPEN), waitFor(0.7f),                   // he slowly closes his eyes
             picture(ASLEEP), waitFor(1.4f),
             // LATER: the art and the dream cutscene of the minigame he played come here (not made yet)
-            sleep(),                                             // black: the night passes
+            sleep(),                                             // black: the clock races through the night (NightClock)
             waitFor(1.2f),                                       // morning, still asleep
             picture(HALF_OPEN), waitFor(0.5f),                   // he slowly opens his eyes
             picture(AWAKE), waitFor(1.0f),
@@ -210,6 +211,8 @@ class BedCutscene {
     // ---------- state ----------
     private final Room room;
     private final ScreenFader fader = new ScreenFader();
+    private final NightClock clock = new NightClock();   // the night passing (Dawon), during sleep()
+    private boolean clockDone = false;
     private final Random shake = new Random();
     private final GlyphLayout layout = new GlyphLayout();
 
@@ -312,6 +315,7 @@ class BedCutscene {
             GameApp.disableTransparency();
         }
         fader.render(worldW, worldH);
+        clock.render(worldW, worldH);            // only while the night is passing
     }
 
     /** Grenze Gotisch for the words; call when the room is shown. */
@@ -346,6 +350,7 @@ class BedCutscene {
                 }
                 case LIE_DOWN, SLEEP, STAND_UP -> {
                     blackout = step.kind();
+                    clockDone = false;
                     fader.blackTime = switch (step.kind()) {
                         case SLEEP -> NIGHT_PASSING;
                         case LIE_DOWN -> LYING_DOWN;
@@ -366,6 +371,17 @@ class BedCutscene {
     private void updateBlackout(float delta) {
         fader.update(delta);
         if (fader.isDoneFadingOut()) {
+            // while it is black after he fell asleep, the clock races through the night (Dawon)
+            if (blackout == Kind.SLEEP && !clockDone) {
+                if (!clock.isRunning()) {
+                    clock.start();
+                }
+                clock.update(delta);
+                if (clock.isRunning()) {
+                    return;
+                }
+                clockDone = true;
+            }
             switch (blackout) {
                 case LIE_DOWN -> room.lieDown();
                 case SLEEP -> room.nightIsOver();

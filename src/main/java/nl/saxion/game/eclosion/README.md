@@ -164,3 +164,14 @@ Niri has his own blip (`dialogue_blip_niri.wav`, `DialogueBox.VOICE_SOUND`). Nam
 - Real code for the safe (`SAFE_CODE`) and what is inside
 - The other exits of the main hall and the second floor (`addExitNotMadeYet` in `MainHallScreen`)
 - Saving the minigame rewards (`TODO` in `Floor1FlowerScreen`) and a save system for "Continue"
+
+## Dawon's additions
+
+| What | Where | How it works |
+|---|---|---|
+| Who is speaking | `ui/DialogueBox` (`updateSpeakerLight`) | the portrait of the one who is not speaking is shaded and 90% big; while the options are shown, Ageha (left) is lit |
+| Memory items | `items/Items` | `Items.give(Items.HAIR_TIE)`, `Items.has(...)`; one place per floor (`Items.SLOTS`); pictures in `textures/items/<id>.png`; `Items.reset()` on New Game |
+| Item found | `ui/ItemPopup` | the panel with the item's picture, name and text (used by minigame 1 for the hair tie) |
+| Collection | `ui/CollectionMenu` | **I** or **Tab** while walking around: one place per floor, found items with their picture, the rest "?" |
+| The night passing | `ui/NightClock` | during `sleep()` in `BedCutscene.GO_TO_SLEEP`: a big clock races from 23:00 to 7:00, "ding", then "DAY 2  14 June / 6 days left". `NightClock.day` is the day of the week (`reset()` on New Game) |
+| Minigame 1 | `minigames/Floor1FlowerScreen` | 15 flowers clears it; at 15 the game asks: stop, or keep going for 25 (faster, more withered flowers, and under 15 at the end = the night is lost). 25 = the hair tie. Intro, choice and result use the dialogue box |

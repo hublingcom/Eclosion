@@ -1,11 +1,13 @@
 package nl.saxion.game;
 
 import nl.saxion.game.eclosion.explore.TimeOfDay;
+import nl.saxion.game.eclosion.items.Items;
 import nl.saxion.game.eclosion.minigames.Floor1FlowerScreen;
 import nl.saxion.game.eclosion.minigames.MiniGame2;
 import nl.saxion.game.eclosion.rooms.AgehaRoomScreen;
 import nl.saxion.game.eclosion.rooms.CorridorScreen;
 import nl.saxion.game.eclosion.rooms.MainHallScreen;
+import nl.saxion.game.eclosion.ui.NightClock;
 import nl.saxion.game.eclosion.ui.Settings;
 import nl.saxion.game.eclosion.ui.TitleScreen;
 import nl.saxion.gameapp.GameApp;
@@ -28,6 +30,8 @@ public class Main {
      */
     public static void addStoryScreens() {
         TimeOfDay.startDay();
+        NightClock.reset();     // day 1 again (Dawon)
+        Items.reset();          // no memory items found yet (Dawon)
 
         // Floor 1 (ground floor): the places Ageha walks around in
         GameApp.addScreen("AgehaRoomScreen", new AgehaRoomScreen());

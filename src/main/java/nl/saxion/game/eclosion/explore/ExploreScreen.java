@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Rectangle;
 import nl.saxion.game.eclosion.audio.Bgm;
 import nl.saxion.game.eclosion.audio.Sfx;
 import nl.saxion.game.eclosion.ui.ClickEffect;
+import nl.saxion.game.eclosion.ui.CollectionMenu;
 import nl.saxion.game.eclosion.ui.DialogueBox;
 import nl.saxion.game.eclosion.ui.DialogueLine;
 import nl.saxion.game.eclosion.ui.PauseMenu;
@@ -117,6 +118,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
     // ---------- music and the pause menu ----------
     private static final float MUSIC_VOLUME = 0.3f;          // floor theme volume
     private final PauseMenu pauseMenu = new PauseMenu();
+    private final CollectionMenu collection = new CollectionMenu();   // I / Tab: the memory items (Dawon)
 
     // ---------- night (see TimeOfDay) ----------
     private static final float NIGHT_DARKNESS = 0.70f;       // 0 = like the day, 1 = all black
@@ -522,6 +524,9 @@ public abstract class ExploreScreen extends ScalableGameScreen {
             } else if (result == PauseMenu.Result.QUIT) {
                 GameApp.quit();
             }
+        } else if (collection.isOpen()) {
+            stopWalking();                  // the game stands still while the collection is open
+            collection.update(getMouseX(), getMouseY());
         } else if (overlayOpen()) {
             stopWalking();
             updateOverlay(delta);
@@ -534,6 +539,9 @@ public abstract class ExploreScreen extends ScalableGameScreen {
         } else if (GameApp.isKeyJustPressed(Input.Keys.ESCAPE)) {
             stopWalking();
             pauseMenu.open(getMouseX(), getMouseY());   // Esc while walking around: the pause menu
+        } else if (CollectionMenu.toggleKey()) {
+            stopWalking();
+            collection.open(getMouseX(), getMouseY());  // I / Tab while walking around: the collection
         } else {
             // a click on the black around the room (outside the pink outline) does nothing at all
             if (GameApp.isButtonJustPressed(Input.Buttons.LEFT) && !isOutsideRoom(getMouseX(), getMouseY())) {
@@ -624,6 +632,7 @@ public abstract class ExploreScreen extends ScalableGameScreen {
                 && agehaMiddle > boxLeft && agehaMiddle < boxRight);
         dialogue.render(getWorldWidth(), getWorldHeight());
         renderOverlay();
+        collection.render(getWorldWidth(), getWorldHeight());
         pauseMenu.render(getWorldWidth(), getWorldHeight());
         fader.render(getWorldWidth(), getWorldHeight());
         ClickEffect.updateAndDraw(getMouseX(), getMouseY());   // little white circle where you click

@@ -381,18 +381,26 @@ public class DialogueBox {
 
         GameApp.enableTransparency();
 
-        // 1. Portraits, standing next to the box (not behind it)
+        // 1. Portraits, standing next to the box (not behind it).
+        //    (Dawon) The one who is speaking is in full colour; the other one is shaded and a little smaller.
+        //    While the options are shown, Ageha (left) is the one who answers.
+        updateSpeakerLight(parts);
         GameApp.startSpriteRendering();
         if (leftPortrait != null) {
-            float h = portraitHeight(leftPortrait);
+            float k = SILENT_SCALE + (1 - SILENT_SCALE) * leftLit;
+            float h = portraitHeight(leftPortrait) * k;
             float w = portraitWidth(leftPortrait, h);
+            setPortraitShade(leftLit);
             GameApp.drawTexture(leftPortrait, boxX - PORTRAIT_GAP - w, 0, w, h);
         }
         if (rightPortrait != null) {
-            float h = portraitHeight(rightPortrait);
+            float k = SILENT_SCALE + (1 - SILENT_SCALE) * rightLit;
+            float h = portraitHeight(rightPortrait) * k;
             float w = portraitWidth(rightPortrait, h);
+            setPortraitShade(rightLit);
             GameApp.drawTexture(rightPortrait, boxX + BOX_WIDTH + PORTRAIT_GAP, 0, w, h);
         }
+        GameApp.getSpriteBatch().setColor(Color.WHITE);
         GameApp.endSpriteRendering();
 
         // 2. The box: dark band with a thin outer line and a fainter inner line
@@ -489,6 +497,39 @@ public class DialogueBox {
             }
         }
         return DEFAULT_PORTRAIT_HEIGHT;
+    }
+
+    // ---------- who is speaking (Dawon) ----------
+    private static final float SILENT_SCALE = 0.9f;                                       // size of the one not speaking
+    private static final Color SILENT_SHADE = new Color(0.38f, 0.36f, 0.44f, 1f);          // colour of the one not speaking
+    private static final float LIGHT_SPEED = 8f;                                         // how fast it changes (soft fade)
+    private float leftLit = 1f, rightLit = 1f;                                           // 1 = speaking, 0 = silent
+
+    /** Moves leftLit / rightLit softly towards who is speaking in this box. */
+    private void updateSpeakerLight(List<DialogueLine> parts) {
+        boolean left = false, right = false;
+        for (DialogueLine part : parts) {
+            if (part.side == DialogueLine.Side.LEFT) left = true;
+            if (part.side == DialogueLine.Side.RIGHT) right = true;
+        }
+        if (showingChoices()) {          // the options are Ageha's answer
+            left = true;
+            right = false;
+        }
+        if (!left && !right) {           // narration / inner voice: both stay as they are
+            left = true;
+            right = true;
+        }
+        float step = Math.min(1f, com.badlogic.gdx.Gdx.graphics.getDeltaTime() * LIGHT_SPEED);
+        leftLit += ((left ? 1f : 0f) - leftLit) * step;
+        rightLit += ((right ? 1f : 0f) - rightLit) * step;
+    }
+
+    private void setPortraitShade(float lit) {
+        float r = SILENT_SHADE.r + (1 - SILENT_SHADE.r) * lit;
+        float g = SILENT_SHADE.g + (1 - SILENT_SHADE.g) * lit;
+        float b = SILENT_SHADE.b + (1 - SILENT_SHADE.b) * lit;
+        GameApp.getSpriteBatch().setColor(r, g, b, 1f);
     }
 
     private float portraitWidth(String texture, float height) {
