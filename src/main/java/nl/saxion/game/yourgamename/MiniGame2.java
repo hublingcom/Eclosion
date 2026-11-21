@@ -9,7 +9,8 @@ import com.badlogic.gdx.Gdx;
 
 public class MiniGame2 extends ScalableGameScreen {
     // Spawn Ageha near the bottom door
-    Ageha ageha = new Ageha(675, 100);
+    Ageha agehaComeIn = new Ageha(675, 100);
+    Ageha agehaPlaying = new Ageha(300,100);
 
     // Walkable floor area and furniture obstacles
     Rectangle[] walkableAreas = {new Rectangle(289, 128, 701, 356)};
@@ -29,11 +30,13 @@ public class MiniGame2 extends ScalableGameScreen {
     int r;
     int g;
     int b;
-    int diff = 60;
+    int diff = 120;
     int state = 4;
     private float countdown;
-    int maxRound = 5;
+    int maxRound = 10;
     int round;
+    int standingOn;
+
 
     public MiniGame2() {
         super(1280, 720);
@@ -55,9 +58,11 @@ public class MiniGame2 extends ScalableGameScreen {
         GameApp.addTexture("ageha_up_b", "textures/Ageha_move/ageha_up_b.png");
         GameApp.addTexture("ageha_up_idle", "textures/Ageha_move/ageha_up_idle.png");
         GameApp.addTexture("library_intro", "textures/Background/library_intro.png");
-        GameApp.addTexture("library_game", "textures/Background/library_game.png");
-        GameApp.addFont("basic", "fonts/basic.ttf", 50);
-        GameApp.addFont("rule", "fonts/basic.ttf", 28);
+        GameApp.addTexture("library_game", "textures/Background/library.png");
+        GameApp.addTexture("library_while_playing", "textures/Background/library_while_playing.jpeg");
+        GameApp.addFont("rule", "fonts/DotGothic16-Regular.ttf", 22);
+        GameApp.addFont("score", "fonts/DotGothic16-Regular.ttf", 30);
+        GameApp.addFont("title", "fonts/DotGothic16-Regular.ttf", 40);
         GameApp.addColor("black", Color.BLACK);
         GameApp.addColor("gold", Color.GOLD);
         newRound();
@@ -65,17 +70,15 @@ public class MiniGame2 extends ScalableGameScreen {
 
     public void render(float delta) {
         super.render(delta);
-        float mouseX = getMouseX();
-        float mouseY = getMouseY();
         GameApp.clearScreen("black");
 
         // Game's introduction
         if (state == 0) {
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_intro", 0, 0, getWorldWidth(), getWorldHeight());
-            GameApp.drawText("basic", "Rule", 598, 470, "black");
-            GameApp.drawText("rule", "Find the circle with a different color", 440, 400, "black");
-            GameApp.drawText("rule", "5 rounds - 5 seconds per round", 470, 350, "black");
+            GameApp.drawText("title", "Rule", 600, 460, "black");
+            GameApp.drawText("rule", "Find the circle with a different color", 435, 400, "black");
+            GameApp.drawText("rule", "10 rounds - 8 seconds per round", 480, 350, "black");
             GameApp.drawText("rule", "Press [Y] to start ", 540, 255, "black");
             GameApp.endSpriteRendering();
             if (GameApp.isKeyJustPressed(Input.Keys.Y)) {
@@ -86,8 +89,10 @@ public class MiniGame2 extends ScalableGameScreen {
             }
             // while playing
         } else if (state == 1) {
+            agehaPlaying.update(delta, walkableAreas, obstacles);
             GameApp.startSpriteRendering();
-            GameApp.drawTexture("library_game", 0, 0, getWorldWidth(), getWorldHeight());
+            GameApp.drawTexture("library_while_playing", 0, 0, getWorldWidth(), getWorldHeight());
+            GameApp.drawText("score", "Score: " + score, 855, 275, "black");
             GameApp.endSpriteRendering();
 
             GameApp.startShapeRenderingFilled();
@@ -99,35 +104,41 @@ public class MiniGame2 extends ScalableGameScreen {
                 }
             }
             GameApp.endShapeRendering();
-
+            GameApp.startSpriteRendering();
+            agehaPlaying.draw(delta);
+            GameApp.endSpriteRendering();
             countdown -= delta;
             if (countdown < 0) {
                 state = 3;
             }
-            if (GameApp.isButtonJustPressed(0)) {
-                for (int i = 0; i < 9; i++) {
-                    if (GameApp.pointInCircle(mouseX, mouseY, circleX[i], circleY[i], radius)) {
-                        if (i == oddCircle) {
-                            diff = diff - 10;
-                            round++;
-                            countdown = 10f;
-                            if (round >= maxRound) {
-                                state = 2;
-                            } else {
-                                newRound();
-                            }
-                        } else {
-                            state = 3;
-                        }
 
-                    }
+            int currentCircle = -1;
+            for (int i = 0; i < 9; i++) {
+                if (GameApp.pointInCircle(agehaPlaying.centerX(), agehaPlaying.feetY(), circleX[i], circleY[i], radius)) {
+                    currentCircle = i;
+                    break;
                 }
             }
-            // Win screen
-        } else if (state == 2) {
+            if(!currentCircle == -1){
+                
+            if (currentCircle == oddCircle) {
+                diff = diff - 10;
+                round++;
+                score++;
+                countdown = 10f;
+                newRound();
+            } else {
+                state = 3;
+            }
+            if (round >= maxRound) {
+                state = 2;
+            }
+
+
+        }else if (state == 2) {
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_intro", 0, 0, getWorldWidth(), getWorldHeight());
-            GameApp.drawText("basic", "You Win", 565, 400, "black");
+            GameApp.drawText("title", "You Win", 565, 400, "black");
             GameApp.drawText("rule", "Press [Enter] to go back", 510, 255, "black");
             GameApp.endSpriteRendering();
             if (GameApp.isKeyJustPressed(Input.Keys.ENTER)) {
@@ -137,19 +148,20 @@ public class MiniGame2 extends ScalableGameScreen {
         } else if (state == 3) {
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_intro", 0, 0, getWorldWidth(), getWorldHeight());
-            GameApp.drawText("basic", "Game Over", 540, 400, "black");
+            GameApp.drawText("title", "Game Over", 540, 400, "black");
             GameApp.drawText("rule", "Press [Y] to restart ", 540, 255, "black");
             GameApp.endSpriteRendering();
             if (GameApp.isKeyJustPressed(Input.Keys.Y)) {
-                diff = 60;
+                diff = 120;
                 state = 1;
                 round = 0;
-                countdown = 5f;
+                score = 0;
+                countdown = 10f;
                 newRound();
             }
             // normal room
         } else if (state == 4) {
-            ageha.update(delta, walkableAreas, obstacles);
+            agehaComeIn.update(delta, walkableAreas, obstacles);
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_game", 0, 0, getWorldWidth(), getWorldHeight());
             GameApp.endSpriteRendering();
@@ -159,9 +171,9 @@ public class MiniGame2 extends ScalableGameScreen {
             GameApp.endShapeRendering();
 
             GameApp.startSpriteRendering();
-            ageha.draw(delta);
+            agehaComeIn.draw(delta);
             GameApp.endSpriteRendering();
-            if ( ageha.isNearDoor(item)) {
+            if (agehaComeIn.isNearDoor(item)) {
                 if (GameApp.isKeyJustPressed(Input.Keys.E)) {
                     state = 0;
                 }
