@@ -5,12 +5,11 @@ import com.badlogic.gdx.graphics.Color;
 import nl.saxion.gameapp.GameApp;
 import nl.saxion.gameapp.screens.ScalableGameScreen;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.Gdx;
 
-public class MiniGame2 extends ScalableGameScreen {
+public class FIndOddColor extends ScalableGameScreen {
     // Spawn Ageha near the bottom door
     Ageha agehaComeIn = new Ageha(675, 100);
-    Ageha agehaPlaying = new Ageha(300,100);
+    Ageha agehaPlaying = new Ageha(300, 100);
 
     // Walkable floor area and furniture obstacles
     Rectangle[] walkableAreas = {new Rectangle(289, 128, 701, 356)};
@@ -35,10 +34,14 @@ public class MiniGame2 extends ScalableGameScreen {
     private float countdown;
     int maxRound = 10;
     int round;
-    int standingOn;
+    private static final float CHOOSE_TIME = 1f;   // đứng yên trên vòng tròn 1 giây thì chọn
+    int standingOn = -1;                           // vòng tròn dưới chân, -1 = không có
+    float standTime = 0;
+    int lockedCircle = -1;                         // vòng vừa chọn đúng, phải bước ra rồi mới tính lại
+    float lastFeetX, lastFeetY;                    // để biết Ageha có đang đi không
 
 
-    public MiniGame2() {
+    public FIndOddColor() {
         super(1280, 720);
 
     }
@@ -78,64 +81,53 @@ public class MiniGame2 extends ScalableGameScreen {
             GameApp.drawTexture("library_intro", 0, 0, getWorldWidth(), getWorldHeight());
             GameApp.drawText("title", "Rule", 600, 460, "black");
             GameApp.drawText("rule", "Find the circle with a different color", 435, 400, "black");
-            GameApp.drawText("rule", "10 rounds - 8 seconds per round", 480, 350, "black");
+            GameApp.drawText("rule", "10 rounds - 10 seconds per round", 480, 350, "black");
             GameApp.drawText("rule", "Press [Y] to start ", 540, 255, "black");
             GameApp.endSpriteRendering();
             if (GameApp.isKeyJustPressed(Input.Keys.Y)) {
                 state = 1;
                 round = 0;
                 countdown = 10f;
+                standingOn = -1;
+                standTime = 0;
+                lockedCircle = -1;
                 newRound();
+                agehaPlaying = new Ageha(300, 100);
+                diff = 60;
+                score = 0;
             }
             // while playing
         } else if (state == 1) {
             agehaPlaying.update(delta, walkableAreas, obstacles);
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_while_playing", 0, 0, getWorldWidth(), getWorldHeight());
-            GameApp.drawText("score", "Score: " + score, 855, 275, "black");
+            GameApp.drawText("score", "Score:" + score, 855, 275, "black");
             GameApp.endSpriteRendering();
-
+            GameApp.enableTransparency();
             GameApp.startShapeRenderingFilled();
+            if (standingOn >= 0 && standTime > 0) {
+                float degrees = 360f * Math.min(1f, standTime / CHOOSE_TIME);
+                GameApp.getShapeRenderer().setColor(1f, 1f, 1f, 0.9f);
+                GameApp.getShapeRenderer().arc(circleX[standingOn], circleY[standingOn],
+                        radius + 7, 270 - degrees, degrees, 48);
+            }
             for (int i = 0; i < 9; i++) {
-                if (i == oddCircle) {
-                    GameApp.drawCircle(circleX[i], circleY[i], radius, "odd");
-                } else {
-                    GameApp.drawCircle(circleX[i], circleY[i], radius, "normal");
-                }
+                GameApp.drawCircle(circleX[i], circleY[i], radius, i == oddCircle ? "odd" : "normal");
             }
             GameApp.endShapeRendering();
+            GameApp.disableTransparency();
             GameApp.startSpriteRendering();
             agehaPlaying.draw(delta);
             GameApp.endSpriteRendering();
             countdown -= delta;
             if (countdown < 0) {
                 state = 3;
+                return;
             }
-
-            int currentCircle = -1;
-            for (int i = 0; i < 9; i++) {
-                if (GameApp.pointInCircle(agehaPlaying.centerX(), agehaPlaying.feetY(), circleX[i], circleY[i], radius)) {
-                    currentCircle = i;
-                    break;
-                }
-            }
-            if(!currentCircle == -1){
-                
-            if (currentCircle == oddCircle) {
-                diff = diff - 10;
-                round++;
-                score++;
-                countdown = 10f;
-                newRound();
-            } else {
-                state = 3;
-            }
-            if (round >= maxRound) {
-                state = 2;
-            }
+            chooseByStanding(delta);
 
 
-        }else if (state == 2) {
+        } else if (state == 2) {
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_intro", 0, 0, getWorldWidth(), getWorldHeight());
             GameApp.drawText("title", "You Win", 565, 400, "black");
@@ -148,15 +140,19 @@ public class MiniGame2 extends ScalableGameScreen {
         } else if (state == 3) {
             GameApp.startSpriteRendering();
             GameApp.drawTexture("library_intro", 0, 0, getWorldWidth(), getWorldHeight());
-            GameApp.drawText("title", "Game Over", 540, 400, "black");
+            GameApp.drawText("title", "Game Over", 545, 400, "black");
             GameApp.drawText("rule", "Press [Y] to restart ", 540, 255, "black");
             GameApp.endSpriteRendering();
             if (GameApp.isKeyJustPressed(Input.Keys.Y)) {
-                diff = 120;
+                diff = 60;
                 state = 1;
                 round = 0;
                 score = 0;
                 countdown = 10f;
+                standingOn = -1;
+                standTime = 0;
+                lockedCircle = -1;
+                agehaPlaying = new Ageha(300, 100);
                 newRound();
             }
             // normal room
@@ -182,23 +178,77 @@ public class MiniGame2 extends ScalableGameScreen {
         }
     }
 
+    public int circleUnderFeet() {
+        for (int i = 0; i < 9; i++) {
+            if (GameApp.pointInCircle(agehaPlaying.centerX(), agehaPlaying.feetY(),
+                    circleX[i], circleY[i], radius)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public void chooseByStanding(float delta) {
+        float fx = agehaPlaying.centerX();
+        float fy = agehaPlaying.feetY();
+        boolean walking = Math.abs(fx - lastFeetX) > 0.01f || Math.abs(fy - lastFeetY) > 0.01f;
+        lastFeetX = fx;
+        lastFeetY = fy;
+
+        int under = circleUnderFeet();
+        if (under != lockedCircle) {
+            lockedCircle = -1;
+        }
+        if (under < 0 || under == lockedCircle || walking) {
+            standingOn = (under == lockedCircle) ? -1 : under;
+            standTime = 0;
+            return;
+        }
+        if (under != standingOn) {
+            standingOn = under;
+            standTime = 0;
+        }
+        standTime += delta;
+        if (standTime >= CHOOSE_TIME) {
+            choose(under);
+        }
+    }
+
+    public void choose(int circle) {
+        standingOn = -1;
+        standTime = 0;
+        if (circle == oddCircle) {
+            diff = diff - 5;
+            round++;
+            score++;
+            countdown = 10f;
+            lockedCircle = circle;
+            agehaPlaying = new Ageha(300, 100);
+            if (round >= maxRound) {
+                state = 2;
+            } else {
+                newRound();
+            }
+        } else {
+            state = 3;
+        }
+    }
 
     public void newRound() {
         oddCircle = GameApp.randomInt(0, 9);
         r = GameApp.randomInt(40, 200);
         g = GameApp.randomInt(40, 200);
         b = GameApp.randomInt(40, 200);
-        GameApp.addColor("odd", r + diff, g + diff, b + diff);
+        GameApp.addColor("odd", Math.min(255, r + diff), Math.min(255, g + diff), Math.min(255, b + diff));
         GameApp.addColor("normal", r, g, b);
 
     }
 
     public void hide() {
-        GameApp.disposeFont("basic");
+        GameApp.disposeFont("score");
         GameApp.disposeFont("rule");
+        GameApp.disposeFont("title");
         GameApp.disposeTexture("library_game");
         GameApp.disposeTexture("library_intro");
-
-
     }
 }
